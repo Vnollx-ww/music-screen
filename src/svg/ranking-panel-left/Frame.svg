@@ -1,0 +1,25 @@
+<svg width="508" height="623" viewBox="46 168 508 623" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<filter id="filter4_d_285_2703" x="46" y="168" width="508" height="623" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="-19"/>
+<feGaussianBlur stdDeviation="23.5"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_285_2703"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_285_2703" result="shape"/>
+</filter>
+<clipPath id="bgblur_4_285_2703_clip_path" transform="translate(-46 -168)"><path d="M93 260C93 245.641 104.641 234 119 234H481C495.359 234 507 245.641 507 260V498.5V736C507 750.912 494.912 763 480 763H120C105.088 763 93 750.912 93 736V260Z"/>
+</clipPath>
+<linearGradient id="paint62_linear_285_2703" x1="182.877" y1="-38.6686" x2="555.638" y2="4.35439" gradientUnits="userSpaceOnUse">
+<stop stop-color="white" stop-opacity="0.5"/>
+<stop offset="0.34611" stop-color="white" stop-opacity="0.65389"/>
+<stop offset="0.636075" stop-color="white" stop-opacity="0.363925"/>
+<stop offset="1" stop-color="white" stop-opacity="0.5"/>
+</linearGradient>
+</defs>
+<foreignObject x="46" y="168" width="508" height="623"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(2.15px);clip-path:url(#bgblur_4_285_2703_clip_path);height:100%;width:100%"></div></foreignObject><g filter="url(#filter4_d_285_2703)" data-figma-bg-blur-radius="4.3">
+<path d="M93 260C93 245.641 104.641 234 119 234H481C495.359 234 507 245.641 507 260V498.5V736C507 750.912 494.912 763 480 763H120C105.088 763 93 750.912 93 736V260Z" fill="#262525" fill-opacity="0.67"/>
+<path d="M119 234.5H481C495.083 234.5 506.5 245.917 506.5 260V736C506.5 750.636 494.636 762.5 480 762.5H120C105.364 762.5 93.5 750.636 93.5 736V260C93.5 245.917 104.917 234.5 119 234.5Z" stroke="url(#paint62_linear_285_2703)"/>
+</g>
+</svg>

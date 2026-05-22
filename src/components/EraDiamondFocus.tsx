@@ -27,11 +27,15 @@ export default function EraDiamondFocus({ activeEra }: Props) {
   const visibleDiamonds = activeEra ? diamonds.filter(({ era }) => era === activeEra) : diamonds
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-[3]">
+    <div className="pointer-events-none absolute inset-0">
       {visibleDiamonds.map(({ era, panel, icon }) => (
-        <div key={era} className={'absolute inset-0 ' + (activeEra ? 'era-diamond-focus-active' : '')}>
-          <img src={panel} alt="" className="absolute inset-0 h-full w-full select-none object-fill" />
-          <img src={icon} alt="" className="absolute inset-0 h-full w-full select-none object-fill" />
+        <div key={era} className="absolute inset-0">
+          <img src={panel} alt="" className="absolute inset-0 z-[3] h-full w-full select-none object-fill" />
+          <img
+            src={icon}
+            alt=""
+            className={'absolute inset-0 z-[5] h-full w-full select-none object-fill ' + (activeEra ? 'era-diamond-icon-lift' : '')}
+          />
         </div>
       ))}
     </div>

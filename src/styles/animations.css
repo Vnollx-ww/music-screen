@@ -73,12 +73,23 @@
   100% { opacity: 1; }
 }
 
+@keyframes eraDiamondIconLift {
+  0% { transform: translateY(0); }
+  22% { transform: translateY(-72px); }
+  78% { transform: translateY(-72px); }
+  100% { transform: translateY(0); }
+}
+
 .animate-headShake {
   animation: headShake 0.6s ease-in-out;
 }
 
 .era-diamond-focus-active {
   animation: eraDiamondFocusPulse 4.5s ease both;
+}
+
+.era-diamond-icon-lift {
+  animation: eraDiamondIconLift 3s ease-in-out both;
 }
 
 .float-ball {

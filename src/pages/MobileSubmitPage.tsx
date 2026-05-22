@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { insertSong as persistSong } from '../lib/songs'
+import EraIcon from '../components/EraIcon'
 
 // ==========================================
 // 🛠 本地配置与数据定义 (解决外部文件无法解析的编译报错)
@@ -9,15 +10,15 @@ export type Era = 'vinyl' | 'tape' | 'cd' | 'digital' | 'ai'
 export interface EraOption {
   value: Era
   label: string
-  emoji: string
+  icon: Era
 }
 
 export const eraOptions: EraOption[] = [
-  { value: 'vinyl', label: '黑胶年代', emoji: '⬤' },
-  { value: 'tape', label: '磁带年代', emoji: '📼' },
-  { value: 'cd', label: 'CD年代', emoji: '💿' },
-  { value: 'digital', label: '数字年代', emoji: '�' },
-  { value: 'ai', label: 'AI共创', emoji: '✨' },
+  { value: 'vinyl', label: '黑胶年代', icon: 'vinyl' },
+  { value: 'tape', label: '磁带年代', icon: 'tape' },
+  { value: 'cd', label: 'CD年代', icon: 'cd' },
+  { value: 'digital', label: '数字年代', icon: 'digital' },
+  { value: 'ai', label: 'AI共创', icon: 'ai' },
 ]
 
 export function inferEraFromYear(year: number): Era {
@@ -236,7 +237,7 @@ export default function MobileSubmitPage() {
                             : 'bg-white/[0.04]'
                         }`}
                       >
-                        {o.emoji}
+                        <EraIcon era={o.icon} size={26} />
                       </span>
                       <span className="min-w-0 flex-1 truncate tracking-wide">{o.label}</span>
                     </button>

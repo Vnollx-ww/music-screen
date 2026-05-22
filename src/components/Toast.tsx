@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { eraConfig } from '../lib/eraConfig'
+import EraIcon from './EraIcon'
 import type { Song } from '../types/song'
 
 interface Props {
@@ -29,7 +30,7 @@ export default function Toast({ song }: Props) {
         className="toast-drop flex min-w-[680px] items-center gap-10 rounded-3xl border border-white/30 bg-[#0d0a1a]/90 px-14 py-8 backdrop-blur-2xl"
         style={{ boxShadow: `0 0 80px ${cfg.color}55, 0 20px 90px rgba(0,0,0,0.7)` }}
       >
-        <span className="text-7xl leading-none">{cfg.emoji}</span>
+        <span className="grid h-[72px] w-[72px] shrink-0 place-items-center"><EraIcon era={cfg.icon} size={72} /></span>
         <div className="flex flex-col gap-2">
           <p className="text-xl font-bold tracking-[0.18em] text-white/85">✨ 新曲上榜！</p>
           <p className="text-4xl font-black leading-tight text-white">{current.title}</p>

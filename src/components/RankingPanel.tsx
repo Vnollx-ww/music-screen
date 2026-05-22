@@ -1,15 +1,9 @@
 import { eraConfig } from '../lib/eraConfig'
+import EraIcon from './EraIcon'
 import type { Song } from '../types/song'
 
 import frameLeft from '../svg/ranking-panel-left/Frame.svg'
-import rowsLeft from '../svg/ranking-panel-left/Rows.svg'
-import iconsLeft from '../svg/ranking-panel-left/Icons.svg'
-import badgeSlotsLeft from '../svg/ranking-panel-left/BadgeSlots.svg'
-
 import frameRight from '../svg/ranking-panel-right/Frame.svg'
-import rowsRight from '../svg/ranking-panel-right/Rows.svg'
-import iconsRight from '../svg/ranking-panel-right/Icons.svg'
-import badgeSlotsRight from '../svg/ranking-panel-right/BadgeSlots.svg'
 
 interface Props {
   title: string
@@ -32,10 +26,8 @@ interface PanelLayout {
   badgeWidth: number
   badgeOffsetY: number
   badgeText: 'light' | 'dark'
+  badgeFill: string
   frame: string
-  rows: string
-  icons: string
-  badgeSlots: string
 }
 
 const layouts: Record<'classic' | 'ai', PanelLayout> = {
@@ -53,10 +45,8 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     badgeWidth: 74,
     badgeOffsetY: 19,
     badgeText: 'light',
+    badgeFill: 'black',
     frame: frameLeft,
-    rows: rowsLeft,
-    icons: iconsLeft,
-    badgeSlots: badgeSlotsLeft,
   },
   ai: {
     width: 495,
@@ -72,10 +62,8 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     badgeWidth: 74,
     badgeOffsetY: 18,
     badgeText: 'dark',
+    badgeFill: 'white',
     frame: frameRight,
-    rows: rowsRight,
-    icons: iconsRight,
-    badgeSlots: badgeSlotsRight,
   },
 }
 
@@ -86,9 +74,17 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const contentLeft = iconLocalCx + layout.iconRadius + 14
   const contentRight = badgeLocalLeft - 8
   const badgeY = 37.5 - 11.5 + layout.badgeOffsetY
+  const iconSize = layout.iconRadius * 2
 
   return (
     <>
+      <div className="absolute inset-0 rounded-full bg-[#d9d9d9]/[0.22]" />
+      <div
+        className="absolute flex items-center justify-center"
+        style={{ left: iconLocalCx - iconSize / 2, top: (75 - iconSize) / 2, width: iconSize, height: iconSize }}
+      >
+        <EraIcon era={song.era} size={iconSize} />
+      </div>
       <div
         className="absolute flex flex-col justify-center gap-[4px]"
         style={{ left: contentLeft, width: contentRight - contentLeft, top: 0, bottom: 0 }}
@@ -98,38 +94,11 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
       </div>
 
       <div
-        className="absolute flex items-center justify-center"
-        style={{ left: badgeLocalLeft, top: badgeY, width: layout.badgeWidth, height: 23 }}
+        className="absolute flex items-center justify-center rounded-[6px]"
+        style={{ left: badgeLocalLeft, top: badgeY, width: layout.badgeWidth, height: 23, background: layout.badgeFill }}
       >
-        <span className={`text-[11px] font-bold tracking-wide ${layout.badgeText === 'light' ? 'text-white' : 'text-black'}`}>
+        <span className={'text-[11px] font-bold tracking-wide ' + (layout.badgeText === 'light' ? 'text-white' : 'text-black')}>
           {cfg.label}
-        </span>
-      </div>
-    </>
-  )
-}
-
-function EmptySlot({ layout }: { layout: PanelLayout }) {
-  const iconLocalCx = layout.iconCx - layout.rowLeft
-  const badgeLocalLeft = layout.badgeLeft - layout.rowLeft
-  const contentLeft = iconLocalCx + layout.iconRadius + 14
-  const contentRight = badgeLocalLeft - 8
-  const badgeY = 37.5 - 11.5 + layout.badgeOffsetY
-
-  return (
-    <>
-      <div
-        className="absolute flex items-center"
-        style={{ left: contentLeft, width: contentRight - contentLeft, top: 0, bottom: 0 }}
-      >
-        <p className="text-[14px] font-medium text-white/35">等待投票...</p>
-      </div>
-      <div
-        className="absolute flex items-center justify-center"
-        style={{ left: badgeLocalLeft, top: badgeY, width: layout.badgeWidth, height: 23 }}
-      >
-        <span className={`text-[10px] font-black tracking-wider ${layout.badgeText === 'light' ? 'text-white/40' : 'text-black/30'}`}>
-          --
         </span>
       </div>
     </>
@@ -138,14 +107,11 @@ function EmptySlot({ layout }: { layout: PanelLayout }) {
 
 export default function RankingPanel({ title, songs, variant }: Props) {
   const layout = layouts[variant]
-  const slots = Array.from({ length: 5 }, (_, i) => songs[i] ?? null)
+  const visibleSongs = songs.slice(0, 5)
 
   return (
     <section className="relative shrink-0" style={{ width: layout.width, height: layout.height }}>
       <img src={layout.frame} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
-      <img src={layout.rows} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
-      <img src={layout.icons} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
-      <img src={layout.badgeSlots} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
 
       <div
         className="pointer-events-none absolute inset-x-0 flex items-center justify-center"
@@ -154,9 +120,9 @@ export default function RankingPanel({ title, songs, variant }: Props) {
         <h2 className="text-center text-[34px] font-medium tracking-wider text-white">{title}</h2>
       </div>
 
-      {slots.map((song, i) => (
+      {visibleSongs.map((song, i) => (
         <div
-          key={song?.id ?? `e-${variant}-${i}`}
+          key={song.id}
           className="pointer-events-none absolute"
           style={{
             left: layout.rowLeft,
@@ -165,10 +131,7 @@ export default function RankingPanel({ title, songs, variant }: Props) {
             height: 75,
           }}
         >
-          {song
-            ? <RankItem song={song} layout={layout} />
-            : <EmptySlot layout={layout} />
-          }
+          <RankItem song={song} layout={layout} />
         </div>
       ))}
     </section>

@@ -24,9 +24,12 @@ interface PanelLayout {
   iconRadius: number
   badgeLeft: number
   badgeWidth: number
+  badgeHeight: number
   badgeOffsetY: number
+  badgeFontSize: number
   badgeText: 'light' | 'dark'
   badgeFill: string
+  artistFontSize: number
   frame: string
 }
 
@@ -41,11 +44,14 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     rowWidth: 354,
     iconCx: 120,
     iconRadius: 24,
-    badgeLeft: 345,
-    badgeWidth: 74,
+    badgeLeft: 335,
+    badgeWidth: 86,
+    badgeHeight: 26,
     badgeOffsetY: 19,
+    badgeFontSize: 14,
     badgeText: 'light',
     badgeFill: 'black',
+    artistFontSize: 15,
     frame: frameLeft,
   },
   ai: {
@@ -60,9 +66,12 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     iconRadius: 40,
     badgeLeft: 324,
     badgeWidth: 74,
+    badgeHeight: 23,
     badgeOffsetY: 18,
+    badgeFontSize: 11,
     badgeText: 'dark',
     badgeFill: 'white',
+    artistFontSize: 12,
     frame: frameRight,
   },
 }
@@ -73,7 +82,7 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const badgeLocalLeft = layout.badgeLeft - layout.rowLeft
   const contentLeft = iconLocalCx + layout.iconRadius + 14
   const contentRight = badgeLocalLeft - 8
-  const badgeY = 37.5 - 11.5 + layout.badgeOffsetY
+  const badgeY = 37.5 - layout.badgeHeight / 2 + layout.badgeOffsetY
   const iconSize = layout.iconRadius * 2
 
   return (
@@ -90,14 +99,14 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
         style={{ left: contentLeft, width: contentRight - contentLeft, top: 0, bottom: 0 }}
       >
         <h3 className="truncate text-[18px] font-bold leading-tight text-white">{song.title}</h3>
-        <p className="truncate text-[12px] leading-tight text-white/55">{song.artist}</p>
+        <p className="truncate leading-tight text-white/60" style={{ fontSize: layout.artistFontSize }}>{song.artist}</p>
       </div>
 
       <div
         className="absolute flex items-center justify-center rounded-[6px]"
-        style={{ left: badgeLocalLeft, top: badgeY, width: layout.badgeWidth, height: 23, background: layout.badgeFill }}
+        style={{ left: badgeLocalLeft, top: badgeY, width: layout.badgeWidth, height: layout.badgeHeight, background: layout.badgeFill }}
       >
-        <span className={'text-[11px] font-bold tracking-wide ' + (layout.badgeText === 'light' ? 'text-white' : 'text-black')}>
+        <span className={'font-bold tracking-wide ' + (layout.badgeText === 'light' ? 'text-white' : 'text-black')} style={{ fontSize: layout.badgeFontSize }}>
           {cfg.label}
         </span>
       </div>

@@ -1,11 +1,15 @@
 import { useMobileMode } from './hooks/useMobileMode'
 import DashboardPage from './pages/DashboardPage'
 import MobileSubmitPage from './pages/MobileSubmitPage'
+import MobileVotePage from './pages/MobileVotePage'
 
 function App() {
-  const isMobile = useMobileMode()
+  const mobileMode = useMobileMode()
 
-  return isMobile ? <MobileSubmitPage /> : <DashboardPage />
+  if (mobileMode === 'vote') return <MobileVotePage />
+  if (mobileMode === 'mobile') return <MobileSubmitPage />
+
+  return <DashboardPage />
 }
 
 export default App

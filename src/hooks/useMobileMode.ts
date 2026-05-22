@@ -1,14 +1,18 @@
 import { useSyncExternalStore } from 'react'
 
+type AppMode = 'dashboard' | 'mobile' | 'vote'
+
 function subscribe(cb: () => void) {
   window.addEventListener('popstate', cb)
   return () => window.removeEventListener('popstate', cb)
 }
 
-function getSnapshot() {
-  return new URLSearchParams(window.location.search).get('mode') === 'mobile'
+function getSnapshot(): AppMode {
+  const mode = new URLSearchParams(window.location.search).get('mode')
+  if (mode === 'mobile' || mode === 'vote') return mode
+  return 'dashboard'
 }
 
-export function useMobileMode(): boolean {
+export function useMobileMode(): AppMode {
   return useSyncExternalStore(subscribe, getSnapshot)
 }

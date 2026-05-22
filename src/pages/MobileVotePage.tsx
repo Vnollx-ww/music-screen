@@ -19,9 +19,14 @@ function getVoteErrorMessage(err: unknown): string {
     )
 
     const code = typeof record.code === 'string' ? record.code.trim() : ''
+    const message = typeof record.message === 'string' ? record.message.trim() : ''
+
+    if (code === 'P0001' && message.includes('投票次数已达上限')) {
+      return '当前 IP 投票次数已达上限（每个 IP 最多 3 票）'
+    }
 
     if (code === 'PGRST202' || code === '42883') {
-      parts.push('请先在 Supabase SQL Editor 执行 supabase/migrations/20260522130300_create_vote_song_rpc.sql')
+      parts.push('请先在 Supabase SQL Editor 执行 supabase/migrations/20260522214700_limit_vote_by_ip.sql')
     }
 
     if (code) {
@@ -81,7 +86,7 @@ export default function MobileVotePage() {
             投票推榜
           </h1>
           <p className="mobile-page-subtitle">
-            为喜欢的歌曲推一票，实时影响现场大屏排名
+            为喜欢的歌曲推一票，实时影响现场大屏排名；每个 IP 最多 3 票
           </p>
         </div>
 

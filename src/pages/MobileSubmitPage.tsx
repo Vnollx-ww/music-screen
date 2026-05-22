@@ -72,9 +72,6 @@ export default function MobileSubmitPage() {
     }
   }
 
-  // 动态获取当前年代的 Label 用于卡片预览标签
-  const currentEraLabel = eraOptions.find((o) => o.value === era)?.label || '数字年代'
-
   if (stage === 'success') {
     return (
       <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[#05030d] px-6 text-center">
@@ -135,59 +132,10 @@ export default function MobileSubmitPage() {
           </p>
         </div>
 
-        {/* 卡片效果预览 */}
-        <div className="space-y-2">
-          <p className="text-center text-[11px] font-bold uppercase tracking-widest text-white/30">
-            卡片效果预览
-          </p>
-          <div className="relative flex min-w-0 items-center gap-3 overflow-hidden rounded-3xl border border-white/10 bg-[#1e1e1e] px-3 py-3 shadow-[0_16px_36px_rgba(0,0,0,0.5)]">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(6,182,212,0.1),transparent_40%)]" />
-
-            <svg
-              className="relative z-10 h-10 w-16 shrink-0"
-              viewBox="0 0 64 40"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <defs>
-                <clipPath id="left-circle-clip">
-                  <circle cx="20" cy="20" r="18" />
-                </clipPath>
-              </defs>
-              <circle cx="20" cy="20" r="18" fill="#29e3e1" stroke="#1e1e1e" strokeWidth="2" />
-              <circle cx="44" cy="20" r="18" fill="#f4aedb" stroke="#1e1e1e" strokeWidth="2" />
-              <g clipPath="url(#left-circle-clip)">
-                <circle cx="44" cy="20" r="18" fill="#c28af4" stroke="#1e1e1e" strokeWidth="2" />
-              </g>
-            </svg>
-
-            <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center">
-              <h3
-                className={`truncate text-sm font-black leading-tight tracking-wide ${
-                  title ? 'text-white' : 'font-medium italic text-white/25'
-                }`}
-              >
-                {title.trim() || '未输入歌曲名'}
-              </h3>
-              <p
-                className={`mt-1 truncate text-xs leading-none tracking-wide ${
-                  artist ? 'text-white/50' : 'italic text-white/25'
-                }`}
-              >
-                {artist.trim() || '无名创作者'}
-              </p>
-            </div>
-
-            <div className="relative z-10 shrink-0 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-[11px] font-black text-black shadow-[0_4px_12px_rgba(255,255,255,0.15)]">
-              {currentEraLabel}
-            </div>
-          </div>
-        </div>
-
         {/* 表单卡片 */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-[0_32px_90px_rgba(0,0,0,0.5)] backdrop-blur-2xl sm:p-5">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="relative p-4 sm:p-5">
+          <div className="pointer-events-none absolute inset-x-0 -top-4 bottom-0 rounded-3xl border border-white/10 bg-white/[0.04] shadow-[0_32px_90px_rgba(0,0,0,0.5)] backdrop-blur-2xl" />
+          <form onSubmit={handleSubmit} className="relative space-y-5 pl-2">
             <Field
               label="歌曲名 *"
               value={title}

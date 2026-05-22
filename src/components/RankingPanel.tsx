@@ -105,6 +105,41 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   )
 }
 
+function EmptyState({ variant, layout }: { variant: 'classic' | 'ai'; layout: PanelLayout }) {
+  const isClassic = variant === 'classic'
+
+  return (
+    <div
+      className="pointer-events-none absolute flex flex-col items-center justify-center rounded-[28px] border border-white/10 bg-white/[0.04] text-center backdrop-blur-[2px]"
+      style={{
+        left: layout.rowLeft,
+        top: layout.rowCenters[2] - 78,
+        width: layout.rowWidth,
+        height: 156,
+      }}
+    >
+      {isClassic ? (
+        <div className="mb-4 flex items-center justify-center gap-2">
+          <EraIcon era="vinyl" size={38} />
+          <EraIcon era="cd" size={38} />
+          <EraIcon era="tape" size={38} />
+          <EraIcon era="digital" size={38} />
+        </div>
+      ) : (
+        <div className="mb-4">
+          <EraIcon era="ai" size={72} />
+        </div>
+      )}
+      <p className="text-[20px] font-bold tracking-wide text-white/85">
+        {isClassic ? '暂无代际歌曲' : '暂无AI共创歌曲'}
+      </p>
+      <p className="mt-2 text-[13px] font-medium tracking-wide text-white/45">
+        等待推荐歌曲上榜
+      </p>
+    </div>
+  )
+}
+
 export default function RankingPanel({ title, songs, variant }: Props) {
   const layout = layouts[variant]
   const visibleSongs = songs.slice(0, 5)
@@ -119,6 +154,8 @@ export default function RankingPanel({ title, songs, variant }: Props) {
       >
         <h2 className="text-center text-[34px] font-medium tracking-wider text-white">{title}</h2>
       </div>
+
+      {visibleSongs.length === 0 && <EmptyState variant={variant} layout={layout} />}
 
       {visibleSongs.map((song, i) => (
         <div

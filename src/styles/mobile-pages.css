@@ -272,7 +272,6 @@
 }
 
 .mobile-era-label,
-.mobile-error-text,
 .mobile-song-title,
 .mobile-song-artist {
   overflow: hidden;
@@ -305,6 +304,11 @@
   font-weight: 600;
   line-height: 1.3;
   animation: headShake 0.6s ease-in-out;
+}
+
+.mobile-error-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .mobile-error-box {
@@ -616,6 +620,22 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 16px;
+}
+
+.mobile-card-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(239, 68, 68, 0.24);
+  border-radius: 14px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .mobile-song-votes {

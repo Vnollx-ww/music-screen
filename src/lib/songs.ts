@@ -43,22 +43,9 @@ export async function insertSong(input: CreateSongInput): Promise<Song> {
 }
 
 export async function voteSong(songId: string): Promise<Song> {
-  const { data: current, error: fetchError } = await supabase
-    .from('songs')
-    .select('*')
-    .eq('id', songId)
-    .single()
-
-  if (fetchError) throw fetchError
-
-  const row = normalizeSongRow(current as unknown as SongRow)
-  const { data, error } = await supabase
-    .from('songs')
-    .update({ votes: row.votes + 1 })
-    .eq('id', songId)
-    .select('*')
-    .single()
+  const { data, error } = await supabase.rpc('vote_song', { song_id: songId })
 
   if (error) throw error
+  if (!data) throw new Error('投票失败：vote_song 没有返回歌曲数据')
   return normalizeSongRow(data as unknown as SongRow)
 }

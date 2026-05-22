@@ -23,6 +23,14 @@ export function useSongs(onNewSong?: (s: Song) => void) {
     }
   }, [])
 
+  const upsertSong = useCallback((song: Song) => {
+    setSongs((prev) => {
+      const exists = prev.some((x) => x.id === song.id)
+      if (exists) return prev.map((x) => (x.id === song.id ? song : x))
+      return [song, ...prev]
+    })
+  }, [])
+
   useEffect(() => {
     void refresh()
     const channel = supabase
@@ -44,5 +52,5 @@ export function useSongs(onNewSong?: (s: Song) => void) {
     return () => { void supabase.removeChannel(channel) }
   }, [refresh])
 
-  return { songs, loading, error, status, refresh }
+  return { songs, loading, error, status, refresh, upsertSong }
 }

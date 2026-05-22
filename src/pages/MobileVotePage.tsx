@@ -6,11 +6,43 @@ import { eraConfig } from '../lib/eraConfig'
 import type { Song } from '../types/song'
 import '../styles/mobile-pages.css'
 
+type VoteError = {
+  songId: string
+  message: string
+}
+
+function getVoteErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const record = err as Record<string, unknown>
+    const parts = [record.message, record.details, record.hint].filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    )
+
+    const code = typeof record.code === 'string' ? record.code.trim() : ''
+
+    if (code === 'PGRST202' || code === '42883') {
+      parts.push('请先在 Supabase SQL Editor 执行 supabase/migrations/20260522130300_create_vote_song_rpc.sql')
+    }
+
+    if (code) {
+      parts.push(`错误码 ${code}`)
+    }
+
+    if (parts.length > 0) return parts.join('；')
+  }
+
+  if (err instanceof Error && err.message.trim()) return err.message
+  if (typeof err === 'string' && err.trim()) return err
+
+  return '投票失败，请稍后重试'
+}
+
 export default function MobileVotePage() {
-  const { songs, loading, error, refresh } = useSongs()
+  const { songs, loading, error, upsertSong } = useSongs()
   const [votingId, setVotingId] = useState<string | null>(null)
   const [votedId, setVotedId] = useState<string | null>(null)
   const [errMsg, setErrMsg] = useState('')
+  const [voteError, setVoteError] = useState<VoteError | null>(null)
 
   const rankedSongs = useMemo(() => {
     return [...songs].sort((a, b) => calcScore(b) - calcScore(a))
@@ -20,13 +52,17 @@ export default function MobileVotePage() {
     if (votingId) return
     setVotingId(song.id)
     setErrMsg('')
+    setVoteError(null)
     try {
-      await voteSong(song.id)
+      const updatedSong = await voteSong(song.id)
+      upsertSong(updatedSong)
+      setVoteError(null)
       setVotedId(song.id)
       window.setTimeout(() => setVotedId((id) => (id === song.id ? null : id)), 1400)
-      void refresh()
     } catch (err: unknown) {
-      setErrMsg(err instanceof Error ? err.message : '投票失败，请稍后重试')
+      const message = getVoteErrorMessage(err)
+      setErrMsg(`《${song.title}》投票失败：${message}`)
+      setVoteError({ songId: song.id, message })
     } finally {
       setVotingId(null)
     }
@@ -59,14 +95,14 @@ export default function MobileVotePage() {
         </div>
 
         {errMsg && (
-          <div className="mobile-error-bar">
+          <div className="mobile-error-bar" role="alert">
             <span aria-hidden>⚠️</span>
             <span className="mobile-error-text">{errMsg}</span>
           </div>
         )}
 
         {error && (
-          <div className="mobile-error-box">
+          <div className="mobile-error-box" role="alert">
             {error}
           </div>
         )}
@@ -127,6 +163,13 @@ export default function MobileVotePage() {
                       {isVoting ? '推榜中...' : isVoted ? '已推 +1' : '推一票'}
                     </button>
                   </div>
+
+                  {voteError?.songId === song.id && (
+                    <div className="mobile-card-error" role="alert">
+                      <span aria-hidden>⚠️</span>
+                      <span>{voteError.message}</span>
+                    </div>
+                  )}
                 </article>
               )
             })

@@ -14,7 +14,7 @@ export interface EraOption {
   icon: Era
 }
 
-export const eraOptions: EraOption[] = [
+const eraOptions: EraOption[] = [
   { value: 'vinyl', label: '黑胶年代', icon: 'vinyl' },
   { value: 'tape', label: '磁带年代', icon: 'tape' },
   { value: 'cd', label: 'CD年代', icon: 'cd' },
@@ -22,7 +22,7 @@ export const eraOptions: EraOption[] = [
   { value: 'ai', label: 'AI共创', icon: 'ai' },
 ]
 
-export function inferEraFromYear(year: number): Era {
+function inferEraFromYear(year: number): Era {
   if (year < 1975) return 'vinyl'
   if (year <= 1989) return 'tape'
   if (year <= 2002) return 'cd'
@@ -31,7 +31,7 @@ export function inferEraFromYear(year: number): Era {
 }
 
 // 模拟异步数据提交
-export const insertSong = async (song: { title: string; artist?: string; era: Era }) => {
+const insertSong = async (song: { title: string; artist?: string; era: Era }) => {
   return persistSong(song)
 }
 
@@ -120,19 +120,6 @@ export default function MobileSubmitPage() {
       <div className="mobile-page-bg" />
 
       <div className="mobile-page-container">
-        {/* Header */}
-        <div className="mobile-page-header">
-          <div className="mobile-page-header-icon">
-            🎵
-          </div>
-          <h1 className="mobile-page-title">
-            投稿歌曲
-          </h1>
-          <p className="mobile-page-subtitle">
-            推荐心仪之作，即刻闪耀于现场大屏
-          </p>
-        </div>
-
         <div className="mobile-tabs">
           <a href="?mode=vote" className="mobile-tab">
             投票推榜

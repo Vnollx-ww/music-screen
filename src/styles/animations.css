@@ -3,13 +3,6 @@
   50% { transform: translateY(-14px); }
 }
 
-@keyframes toastDrop {
-  0% { opacity: 0; transform: translateY(-34px) scale(0.96); }
-  14% { opacity: 1; transform: translateY(0) scale(1); }
-  86% { opacity: 1; transform: translateY(0) scale(1); }
-  100% { opacity: 0; transform: translateY(-24px) scale(0.98); }
-}
-
 @keyframes pulseGlow {
   0%, 100% { opacity: 0.58; transform: scale(1); }
   50% { opacity: 0.95; transform: scale(1.04); }
@@ -129,10 +122,6 @@
   animation-name: ballFloat;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
-}
-
-.toast-drop {
-  animation: toastDrop 4.5s ease both;
 }
 
 .pulse-glow {

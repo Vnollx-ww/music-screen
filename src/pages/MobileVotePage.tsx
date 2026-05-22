@@ -1,10 +1,31 @@
-import { useMemo, useState } from 'react'
-import EraIcon from '../components/EraIcon'
+import { useEffect, useMemo, useState } from 'react'
 import { useSongs } from '../hooks/useSongs'
 import { calcScore, voteSong } from '../lib/songs'
-import { eraConfig } from '../lib/eraConfig'
 import type { Song } from '../types/song'
-import '../styles/mobile-pages.css'
+
+import bgUrl from '../svg/mobile-vote/Background.svg'
+import panelBgUrl from '../svg/mobile-vote/PanelBackground.svg'
+import backArrowUrl from '../svg/mobile-vote/icons/BackArrow.svg'
+import downChevronUrl from '../svg/mobile-vote/icons/DownChevron.svg'
+import heartUrl from '../svg/mobile-vote/icons/Heart.svg'
+import downloadUrl from '../svg/mobile-vote/icons/Download.svg'
+import loopUrl from '../svg/mobile-vote/icons/Loop.svg'
+import dotsUrl from '../svg/mobile-vote/icons/Dots.svg'
+import playArrowUrl from '../svg/mobile-vote/icons/PlayArrow.svg'
+import voteButtonUrl from '../svg/mobile-vote/buttons/VoteButton.svg'
+import bubble1Url from '../svg/mobile-vote/bubbles/RankBubble1.svg'
+import bubble2Url from '../svg/mobile-vote/bubbles/RankBubble2.svg'
+import bubble3Url from '../svg/mobile-vote/bubbles/RankBubble3.svg'
+import bubble4Url from '../svg/mobile-vote/bubbles/RankBubble4.svg'
+
+import '../styles/mobile-vote.css'
+
+const BUBBLE_URLS = [bubble1Url, bubble2Url, bubble3Url, bubble4Url]
+const FIRST_ROW_TOP = 475 // Y of first row's bubble top (cy=500, r=25), matching Figma
+const ROW_HEIGHT = 78 // Vertical spacing between rows
+const MAX_VISIBLE_ROWS = 10
+const PANEL_CONTENT_BOTTOM = 1067
+const ROW_BOTTOM_PADDING = 35
 
 type VoteError = {
   songId: string
@@ -42,12 +63,28 @@ function getVoteErrorMessage(err: unknown): string {
   return '投票失败，请稍后重试'
 }
 
+function useFitToWidth(designWidth: number) {
+  const [scale, setScale] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Math.min(1.6, window.innerWidth / designWidth)
+  })
+
+  useEffect(() => {
+    const update = () => setScale(Math.min(1.6, window.innerWidth / designWidth))
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [designWidth])
+
+  return scale
+}
+
 export default function MobileVotePage() {
   const { songs, loading, error, upsertSong } = useSongs()
   const [votingId, setVotingId] = useState<string | null>(null)
   const [votedId, setVotedId] = useState<string | null>(null)
   const [errMsg, setErrMsg] = useState('')
   const [voteError, setVoteError] = useState<VoteError | null>(null)
+  const scale = useFitToWidth(390)
 
   const rankedSongs = useMemo(() => {
     return [...songs].sort((a, b) => calcScore(b) - calcScore(a))
@@ -66,118 +103,151 @@ export default function MobileVotePage() {
       window.setTimeout(() => setVotedId((id) => (id === song.id ? null : id)), 1400)
     } catch (err: unknown) {
       const message = getVoteErrorMessage(err)
-      setErrMsg(`《${song.title}》投票失败：${message}`)
-      setVoteError({ songId: song.id, message })
+      if (message.includes('投票次数已达上限')) {
+        setErrMsg(message)
+      } else {
+        setErrMsg(`《${song.title}》投票失败：${message}`)
+        setVoteError({ songId: song.id, message })
+      }
     } finally {
       setVotingId(null)
     }
   }
 
+  const visibleRowCount = Math.min(rankedSongs.length, MAX_VISIBLE_ROWS)
+  const maxListHeight = PANEL_CONTENT_BOTTOM - FIRST_ROW_TOP
+  const listHeight = Math.min(visibleRowCount * ROW_HEIGHT, maxListHeight)
+  const listContentHeight = rankedSongs.length * ROW_HEIGHT
+  const lastRowBottom = FIRST_ROW_TOP + listHeight
+  const canvasHeight = Math.max(844, lastRowBottom + ROW_BOTTOM_PADDING)
+  const showFooterChevron = !loading && rankedSongs.length > 0 && rankedSongs.length <= 4
+
   return (
-    <div className="mobile-page">
-      <div className="mobile-page-bg" />
+    <div className="mv-page">
+      <div className="mv-scaler" style={{ transform: `scale(${scale})` }}>
+        <div className="mv-canvas" style={{ height: canvasHeight }}>
+          {/* 背景：暗底 + 装饰圆 + 顶部漂浮图标 */}
+          <img src={bgUrl} className="mv-bg" alt="" aria-hidden />
 
-      <div className="mobile-page-container">
-        <div className="mobile-page-header">
-          <div className="mobile-page-header-icon">
-            🏆
-          </div>
-          <h1 className="mobile-page-title">
-            投票推榜
-          </h1>
-          <p className="mobile-page-subtitle">
-            为喜欢的歌曲推一票，实时影响现场大屏排名；每个 IP 最多 3 票
+          {/* 顶部返回按钮 */}
+          <button
+            type="button"
+            className="mv-back-arrow"
+            onClick={() => {
+              if (window.history.length > 1) window.history.back()
+              else window.location.assign('/')
+            }}
+            aria-label="返回"
+          >
+            <img src={backArrowUrl} alt="" aria-hidden />
+          </button>
+
+          {/* 顶部页签 */}
+          <nav className="mv-tabs" aria-label="模式切换">
+            <a href="?mode=vote" className="mv-tab mv-tab-active">投票推榜</a>
+            <a href="?mode=mobile" className="mv-tab">投稿歌曲</a>
+          </nav>
+
+          {/* 排行面板背景（含模糊与阴影） */}
+          <img src={panelBgUrl} className="mv-panel-bg" alt="" aria-hidden />
+
+          {/* 面板标题区 */}
+          <h1 className="mv-panel-title">代际歌曲榜单</h1>
+          <p className="mv-panel-subtitle">
+            信义坊社区大屏
           </p>
-        </div>
 
-        <div className="mobile-tabs">
-          <a href="?mode=vote" className="mobile-tab mobile-tab-active">
-            投票推榜
-          </a>
-          <a href="?mode=mobile" className="mobile-tab">
-            投稿歌曲
-          </a>
-        </div>
-
-        {errMsg && (
-          <div className="mobile-error-bar" role="alert">
-            <span aria-hidden>⚠️</span>
-            <span className="mobile-error-text">{errMsg}</span>
+          {/* 装饰图标行 + 大粉色播放箭头 */}
+          <div className="mv-action-icons" aria-hidden>
+            <img src={heartUrl} alt="" />
+            <img src={downloadUrl} alt="" />
+            <img src={loopUrl} alt="" />
+            <img src={dotsUrl} alt="" />
           </div>
-        )}
+          <img src={playArrowUrl} className="mv-play-arrow" alt="" aria-hidden />
 
-        {error && (
-          <div className="mobile-error-box" role="alert">
-            {error}
-          </div>
-        )}
-
-        <div className="mobile-song-list">
-          {loading ? (
-            <div className="mobile-state-card mobile-loading-card">
-              正在同步现场榜单...
+          {/* 顶部错误提示 */}
+          {errMsg && (
+            <div className="mv-error-bar" role="alert">
+              <span aria-hidden>⚠️</span>
+              <span>{errMsg}</span>
             </div>
+          )}
+          {error && !errMsg && (
+            <div className="mv-error-bar" role="alert">
+              <span aria-hidden>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* 列表 / 加载 / 空态 */}
+          {loading ? (
+            <div className="mv-state">正在同步现场榜单...</div>
           ) : rankedSongs.length === 0 ? (
-            <div className="mobile-state-card mobile-empty-card">
-              <div className="mobile-empty-icon">
-                🎵
-              </div>
-              <p className="mobile-empty-title">还没有歌曲上榜</p>
-              <p className="mobile-empty-text">先投稿一首喜欢的歌吧</p>
-              <a href="?mode=mobile" className="mobile-secondary-button mobile-empty-action">
-                去投稿歌曲
-              </a>
+            <div className="mv-state mv-state-empty">
+              <p className="mv-empty-title">还没有歌曲上榜</p>
+              <p>先投稿一首喜欢的歌吧</p>
+              <a href="?mode=mobile" className="mv-empty-link">去投稿歌曲 →</a>
             </div>
           ) : (
-            rankedSongs.map((song, index) => {
-              const cfg = eraConfig[song.era]
-              const isVoting = votingId === song.id
-              const isVoted = votedId === song.id
+            <div className="mv-list" style={{ top: FIRST_ROW_TOP, height: listHeight }}>
+              <div className="mv-list-inner" style={{ height: listContentHeight }}>
+                {rankedSongs.map((song, i) => {
+                  const isVoting = votingId === song.id
+                  const isVoted = votedId === song.id
+                  const top = i * ROW_HEIGHT
+                  const bubbleUrl = BUBBLE_URLS[i % BUBBLE_URLS.length]
+                  const isLast = i === rankedSongs.length - 1
+                  const showError = voteError?.songId === song.id
 
-              return (
-                <article key={song.id} className="mobile-song-card">
-                  <div className="mobile-song-card-line" />
-                  <div className="mobile-song-main">
-                    <div className="mobile-song-rank">
-                      {index + 1}
-                    </div>
-                    <div className="mobile-song-era" style={{ background: `${cfg.color}22` }}>
-                      <EraIcon era={song.era} size={38} />
-                    </div>
-                    <div className="mobile-song-info">
-                      <div className="mobile-song-title-row">
-                        <h2 className="mobile-song-title">{song.title}</h2>
-                        <span className="mobile-song-era-badge" style={{ background: cfg.color }}>
-                          {cfg.label}
-                        </span>
+                  return (
+                    <div key={song.id} className="mv-row" style={{ top }}>
+                      <img src={bubbleUrl} className="mv-row-bubble" alt="" aria-hidden />
+
+                      <div className="mv-row-info">
+                        <h2 className="mv-row-title">{song.title}</h2>
+                        <div className="mv-row-meta">
+                          <span className="mv-row-artist">{song.artist}</span>
+                          <span className="mv-row-votes">{song.votes} 票</span>
+                        </div>
                       </div>
-                      <p className="mobile-song-artist">{song.artist}</p>
-                    </div>
-                  </div>
 
-                  <div className="mobile-song-footer">
-                    <div className="mobile-song-votes">
-                      当前票数 <span>{song.votes}</span>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={Boolean(votingId)}
-                      onClick={() => void handleVote(song)}
-                      className="mobile-vote-button"
-                    >
-                      {isVoting ? '推榜中...' : isVoted ? '已推 +1' : '推一票'}
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        className={
+                          'mv-vote-btn' +
+                          (isVoting ? ' mv-vote-btn-voting' : '') +
+                          (isVoted ? ' mv-vote-btn-voted' : '')
+                        }
+                        disabled={Boolean(votingId)}
+                        onClick={() => void handleVote(song)}
+                      >
+                        <img src={voteButtonUrl} className="mv-vote-btn-bg" alt="" aria-hidden />
+                        <span className="mv-vote-btn-text">
+                          {isVoting ? '推榜中...' : isVoted ? '已推 +1' : '推榜！'}
+                        </span>
+                      </button>
 
-                  {voteError?.songId === song.id && (
-                    <div className="mobile-card-error" role="alert">
-                      <span aria-hidden>⚠️</span>
-                      <span>{voteError.message}</span>
+                      {showError && (
+                        <div className="mv-row-error" role="alert">
+                          <span aria-hidden>⚠️</span>
+                          <span className="mv-row-error-text">{voteError.message}</span>
+                        </div>
+                      )}
+
+                      {!isLast && (
+                        <span className="mv-row-divider" aria-hidden />
+                      )}
                     </div>
-                  )}
-                </article>
-              )
-            })
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 底部 v 形提示 */}
+          {showFooterChevron && (
+            <img src={downChevronUrl} className="mv-chevron" alt="" aria-hidden />
           )}
         </div>
       </div>

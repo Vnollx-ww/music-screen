@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Era, Song } from '../types/song'
 
@@ -17,6 +18,12 @@ interface Position {
   y: number
 }
 
+interface VoteQueueItem {
+  songId: string
+  amount: number
+  sequence: number
+}
+
 type FlyStyle = CSSProperties & {
   '--ball-dx': string
   '--ball-dy': string
@@ -24,6 +31,7 @@ type FlyStyle = CSSProperties & {
 
 const BALL_SIZE = 49
 const BALL_EDGE = BALL_SIZE / 2 + 6
+const VOTE_EFFECT_MS = 1050
 
 const ballIcons: Record<Era, string> = {
   vinyl: vinylBall,
@@ -100,23 +108,106 @@ function getTargetPosition(song: Song): Position {
 }
 
 export default function EraSongBalls({ songs, activeSong }: Props) {
+  const [voteQueue, setVoteQueue] = useState<VoteQueueItem[]>([])
+  const [activeVote, setActiveVote] = useState<VoteQueueItem | null>(null)
+  const previousVotesRef = useRef<Map<string, number> | null>(null)
+  const activeVoteRef = useRef<VoteQueueItem | null>(null)
+  const sequenceRef = useRef(0)
   const staticSongs = activeSong ? songs.filter((song) => song.id !== activeSong.id) : songs
+  const staticSongIds = new Set(staticSongs.map((song) => song.id))
+  const detachedVoteSong = activeVote ? songs.find((song) => song.id === activeVote.songId && !staticSongIds.has(song.id)) : null
+
+  const enqueueVoteIncrement = useCallback((songId: string, amount: number) => {
+    const active = activeVoteRef.current
+
+    if (active?.songId === songId) {
+      const next = { ...active, amount: active.amount + amount }
+      activeVoteRef.current = next
+      setActiveVote(next)
+      return
+    }
+
+    setVoteQueue((prev) => {
+      const last = prev[prev.length - 1]
+
+      if (last?.songId === songId) {
+        return [...prev.slice(0, -1), { ...last, amount: last.amount + amount }]
+      }
+
+      sequenceRef.current += 1
+      return [...prev, { songId, amount, sequence: sequenceRef.current }]
+    })
+  }, [])
+
+  useEffect(() => {
+    activeVoteRef.current = activeVote
+  }, [activeVote])
+
+  useEffect(() => {
+    const nextVotes = new Map(songs.map((song) => [song.id, song.votes]))
+    const previousVotes = previousVotesRef.current
+
+    if (previousVotes) {
+      songs.forEach((song) => {
+        const previousVote = previousVotes.get(song.id)
+
+        if (previousVote !== undefined && song.votes > previousVote) {
+          enqueueVoteIncrement(song.id, song.votes - previousVote)
+        }
+      })
+    }
+
+    previousVotesRef.current = nextVotes
+  }, [enqueueVoteIncrement, songs])
+
+  useEffect(() => {
+    if (activeVote || voteQueue.length === 0) return
+
+    const [next, ...rest] = voteQueue
+    activeVoteRef.current = next
+    setActiveVote(next)
+    setVoteQueue(rest)
+  }, [activeVote, voteQueue])
+
+  useEffect(() => {
+    if (!activeVote) return
+
+    const timer = setTimeout(() => {
+      activeVoteRef.current = null
+      setActiveVote(null)
+    }, VOTE_EFFECT_MS)
+
+    return () => clearTimeout(timer)
+  }, [activeVote])
+
+  const renderSongBall = (song: Song, voteEffect: VoteQueueItem | null) => {
+    const position = getTargetPosition(song)
+
+    return (
+      <div
+        key={voteEffect ? `${song.id}:${voteEffect.sequence}` : song.id}
+        className={'absolute h-[49px] w-[49px] ' + (voteEffect ? 'era-song-ball-vote-bounce' : '')}
+        style={{ left: position.x, top: position.y }}
+      >
+        <img src={ballIcons[song.era]} alt="" className="h-full w-full select-none" />
+        {voteEffect ? (
+          <div className="era-song-ball-vote-plus absolute left-1/2 top-[-18px] rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[18px] font-black leading-none text-white shadow-[0_0_18px_rgba(255,255,255,0.45)]">
+            +{voteEffect.amount}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[6]">
       {staticSongs.map((song) => {
-        const position = getTargetPosition(song)
+        const voteEffect = activeVote?.songId === song.id ? activeVote : null
 
-        return (
-          <img
-            key={song.id}
-            src={ballIcons[song.era]}
-            alt=""
-            className="absolute h-[49px] w-[49px] select-none"
-            style={{ left: position.x, top: position.y }}
-          />
-        )
+        return renderSongBall(song, voteEffect)
       })}
+
+      {detachedVoteSong ? renderSongBall(detachedVoteSong, activeVote) : null}
 
       {activeSong ? (
         <img

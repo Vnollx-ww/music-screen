@@ -83,6 +83,7 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const contentLeft = iconLocalCx + layout.iconRadius + 14
   const contentRight = badgeLocalLeft - 8
   const badgeY = 37.5 - layout.badgeHeight / 2 + layout.badgeOffsetY
+  const votesY = Math.max(8, badgeY - 28)
   const iconSize = layout.iconRadius * 2
 
   return (
@@ -108,6 +109,15 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
       >
         <span className={'font-bold tracking-wide ' + (layout.badgeText === 'light' ? 'text-white' : 'text-black')} style={{ fontSize: layout.badgeFontSize }}>
           {cfg.label}
+        </span>
+      </div>
+
+      <div
+        className="absolute flex items-center justify-center rounded-full border border-white/15 bg-black/35 px-2"
+        style={{ left: badgeLocalLeft, top: votesY, width: layout.badgeWidth, height: 22 }}
+      >
+        <span className="text-[13px] font-bold leading-none text-white">
+          {song.votes}票
         </span>
       </div>
     </>

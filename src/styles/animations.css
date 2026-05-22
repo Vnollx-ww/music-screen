@@ -28,6 +28,26 @@
   50% { transform: translateY(-13px); }
 }
 
+@keyframes mobileSvgBubbleFloatA {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -6px, 0); }
+}
+
+@keyframes mobileSvgBubbleFloatB {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(4px, -10px, 0); }
+}
+
+@keyframes mobileSvgBubbleFloatC {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-3px, -12px, 0); }
+}
+
+@keyframes mobileSvgRecordFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+
 @keyframes pulseGlow {
   0%, 100% { opacity: 0.58; transform: scale(1); }
   50% { opacity: 0.95; transform: scale(1.04); }
@@ -209,6 +229,64 @@
 }
 
 .overlay-above-svg circle:nth-of-type(5n+3) {
+  animation-delay: -0.8s;
+}
+
+.mobile-floating-svg {
+  display: block;
+}
+
+.mobile-floating-svg > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mobile-svg-bubble,
+.mobile-svg-records {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.mobile-svg-bubble {
+  animation: mobileSvgBubbleFloatA 4.8s ease-in-out infinite;
+}
+
+.mobile-svg-bubble-1 {
+  animation-name: mobileSvgBubbleFloatB;
+  animation-duration: 5.6s;
+  animation-delay: -1.6s;
+}
+
+.mobile-svg-bubble-2 {
+  animation-name: mobileSvgBubbleFloatC;
+  animation-duration: 6.2s;
+  animation-delay: -2.8s;
+}
+
+.mobile-svg-bubble-3 {
+  animation-duration: 5.2s;
+  animation-delay: -3.4s;
+}
+
+.mobile-svg-bubble-single {
+  animation-name: mobileSvgBubbleFloatB;
+  animation-duration: 5.8s;
+  animation-delay: -2.2s;
+}
+
+.mobile-svg-records {
+  animation: mobileSvgRecordFloat 5.4s ease-in-out infinite;
+}
+
+.mobile-svg-records-vote {
+  animation-duration: 5.9s;
+  animation-delay: -1.4s;
+}
+
+.mobile-svg-records-submit {
+  animation-duration: 5.2s;
   animation-delay: -0.8s;
 }
 

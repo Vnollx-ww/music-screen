@@ -40,21 +40,40 @@
 
 .mv-back-arrow {
   position: absolute;
-  top: 33px;
-  left: 24px;
-  width: 17px;
-  height: 27px;
+  top: 25px;
+  left: 16px;
+  width: 42px;
+  height: 42px;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  z-index: 5;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .mv-back-arrow img {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 17px;
+  height: 27px;
+}
+
+.mv-title {
+  position: absolute;
+  top: 37px;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .mv-tabs {
@@ -89,7 +108,7 @@
 
 .mv-panel-bg {
   position: absolute;
-  top: 269px;
+  top: 39px;
   left: 0;
   width: 390px;
   height: 853px;
@@ -100,7 +119,7 @@
 
 .mv-panel-title {
   position: absolute;
-  top: 354px;
+  top: 124px;
   left: 33px;
   width: 240px;
   z-index: 3;
@@ -112,7 +131,7 @@
 
 .mv-panel-subtitle {
   position: absolute;
-  top: 390px;
+  top: 160px;
   left: 33px;
   width: 250px;
   z-index: 3;
@@ -123,7 +142,7 @@
 
 .mv-action-icons {
   position: absolute;
-  top: 429px;
+  top: 199px;
   left: 33px;
   z-index: 3;
   display: flex;
@@ -138,7 +157,7 @@
 
 .mv-play-arrow {
   position: absolute;
-  top: 368px;
+  top: 138px;
   left: 293px;
   width: 60px;
   height: 69px;
@@ -149,7 +168,7 @@
 
 .mv-error-bar {
   position: absolute;
-  top: 460px;
+  top: 230px;
   left: 32px;
   right: 32px;
   z-index: 4;
@@ -167,7 +186,7 @@
 
 .mv-state {
   position: absolute;
-  top: 540px;
+  top: 310px;
   left: 32px;
   right: 32px;
   z-index: 3;

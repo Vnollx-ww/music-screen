@@ -1,71 +1,79 @@
-import { useState } from 'react'
-import { insertSong as persistSong } from '../lib/songs'
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import EraIcon from '../components/EraIcon'
-import '../styles/mobile-pages.css'
+import InlineSvg from '../components/InlineSvg'
+import SubmitTopRecord from '../components/SubmitTopRecord'
+import { eraConfig } from '../lib/eraConfig'
+import { insertSong } from '../lib/songs'
+import { decorateMobileSubmitBaseSvg } from '../lib/mobileSvgFloat'
+import type { Era } from '../types/song'
+import submitBaseSvg from '../svg/mobile-submit/SubmitBase.svg?raw'
+import eraOptionSelectedUrl from '../svg/mobile-submit/EraOptionSelected.svg'
+import submitButtonActiveUrl from '../svg/mobile-submit/SubmitButtonActive.svg'
+import '../styles/mobile-submit.css'
 
-// ==========================================
-// 🛠 本地配置与数据定义 (解决外部文件无法解析的编译报错)
-// ==========================================
-export type Era = 'vinyl' | 'tape' | 'cd' | 'digital' | 'ai'
+type Stage = 'form' | 'submitting' | 'success'
 
-export interface EraOption {
+type SubmitEraOption = {
   value: Era
-  label: string
-  icon: Era
+  name: string
+  years: string
 }
 
-const eraOptions: EraOption[] = [
-  { value: 'vinyl', label: '黑胶年代', icon: 'vinyl' },
-  { value: 'tape', label: '磁带年代', icon: 'tape' },
-  { value: 'cd', label: 'CD年代', icon: 'cd' },
-  { value: 'digital', label: '数字年代', icon: 'digital' },
-  { value: 'ai', label: 'AI共创', icon: 'ai' },
+const submitEraOptions: SubmitEraOption[] = [
+  { value: 'vinyl', name: '黑胶', years: '1970' },
+  { value: 'cd', name: 'CD', years: '1990' },
+  { value: 'tape', name: '磁带', years: '1980' },
+  { value: 'digital', name: '数字', years: '2000' },
 ]
 
-function inferEraFromYear(year: number): Era {
-  if (year < 1975) return 'vinyl'
-  if (year <= 1989) return 'tape'
-  if (year <= 2002) return 'cd'
-  if (year <= 2023) return 'digital'
-  return 'ai'
-}
+const floatingSubmitBaseSvg = decorateMobileSubmitBaseSvg(submitBaseSvg)
 
-// 模拟异步数据提交
-const insertSong = async (song: { title: string; artist?: string; era: Era }) => {
-  return persistSong(song)
-}
+function useFitToWidth(designWidth: number) {
+  const [scale, setScale] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Math.min(1.6, window.innerWidth / designWidth)
+  })
 
-// ==========================================
-// 📱 页面组件实现
-// ==========================================
-type Stage = 'form' | 'submitting' | 'success'
+  useEffect(() => {
+    const update = () => setScale(Math.min(1.6, window.innerWidth / designWidth))
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [designWidth])
+
+  return scale
+}
 
 export default function MobileSubmitPage() {
   const [title, setTitle] = useState('')
   const [artist, setArtist] = useState('')
-  const [year, setYear] = useState('')
-  const [era, setEra] = useState<Era>('digital')
+  const [era, setEra] = useState<Era | null>(null)
   const [stage, setStage] = useState<Stage>('form')
   const [errMsg, setErrMsg] = useState('')
+  const scale = useFitToWidth(390)
 
-  const handleYearChange = (v: string) => {
-    setYear(v)
-    const n = Number(v)
-    if (v.length === 4 && Number.isFinite(n)) {
-      setEra(inferEraFromYear(n))
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+
     if (!title.trim()) {
       setErrMsg('请输入歌曲名')
+      setStage('form')
       return
     }
+
+    if (!era) {
+      setErrMsg('请选择歌曲年代')
+      setStage('form')
+      return
+    }
+
     setErrMsg('')
     setStage('submitting')
+
     try {
       await insertSong({ title: title.trim(), artist: artist.trim() || undefined, era })
+      setTitle('')
+      setArtist('')
       setStage('success')
     } catch (err: unknown) {
       setErrMsg(err instanceof Error ? err.message : '提交失败')
@@ -73,162 +81,112 @@ export default function MobileSubmitPage() {
     }
   }
 
-  if (stage === 'success') {
-    return (
-      <div className="mobile-success-page">
-        <div className="mobile-success-bg" />
+  const handleTextChange = (setter: (value: string) => void) => (value: string) => {
+    setter(value)
+    if (stage === 'success') setStage('form')
+    if (errMsg) setErrMsg('')
+  }
 
-        <div className="mobile-success-content">
-          <div className="mobile-success-orb">
-            <span className="mobile-success-emoji">✨</span>
-            <div className="mobile-success-ping" />
-          </div>
+  const handleEraSelect = (value: Era) => {
+    setEra(value)
+    if (stage === 'success') setStage('form')
+    if (errMsg) setErrMsg('')
+  }
 
-          <h1 className="mobile-success-title">
-            投稿成功!
-          </h1>
-          <p className="mobile-success-text">
-            大功告成！正在出现在现场大屏榜单上
-          </p>
+  const selectedEraLabel = era ? eraConfig[era].label : '选择年代'
+  const feedback = errMsg || (stage === 'success' ? '投稿成功，歌曲正在同步到现场大屏' : '')
+  const isSubmitActive = stage === 'submitting' || stage === 'success'
+
+  return (
+    <main className="ms-page">
+      <div className="ms-scaler" style={{ height: 844 * scale }}>
+        <div className="ms-canvas" style={{ transform: `scale(${scale})` }}>
+          <InlineSvg html={floatingSubmitBaseSvg} className="ms-base mobile-floating-svg" />
 
           <button
             type="button"
-            className="mobile-secondary-button mobile-success-action"
-            onClick={() => {
-              setTitle('')
-              setArtist('')
-              setYear('')
-              setStage('form')
-            }}
-          >
-            继续投稿歌曲
-          </button>
-          <a
-            href="?mode=vote"
-            className="mobile-primary-link"
-          >
-            去投票推榜
-          </a>
-        </div>
-      </div>
-    )
-  }
+            className="ms-back"
+            aria-label="返回主页"
+            onClick={() => window.location.assign('?mode=home')}
+          />
 
-  return (
-    <div className="mobile-page">
-      {/* 宇宙霓虹背景：固定在视口，不随滚动移动 */}
-      <div className="mobile-page-bg" />
+          <h1 className="ms-title">上传歌曲</h1>
 
-      <div className="mobile-page-container">
-        {/* 表单卡片 */}
-        <div className="mobile-submit-card">
-          <div className="mobile-submit-card-bg" />
-          <form onSubmit={handleSubmit} className="mobile-submit-form">
-            <Field
-              label="歌曲名 *"
+          {era && <SubmitTopRecord era={era} className="ms-top-icon" />}
+
+          <div className="ms-era-pill-label">{selectedEraLabel}</div>
+
+          <form className="ms-form" onSubmit={handleSubmit}>
+            <label className="ms-field-label ms-field-label-title" htmlFor="mobile-submit-title">
+              歌曲名称
+            </label>
+            <input
+              id="mobile-submit-title"
+              className="ms-input ms-input-title"
               value={title}
-              onChange={setTitle}
-              placeholder="请输入您推荐的歌曲名称"
-              required
+              onChange={(e) => handleTextChange(setTitle)(e.target.value)}
+              placeholder="请输入歌曲名称"
+              autoComplete="off"
             />
 
-            <Field
-              label="艺术家 / 歌手"
+            <label className="ms-field-label ms-field-label-artist" htmlFor="mobile-submit-artist">
+              歌手名称
+            </label>
+            <input
+              id="mobile-submit-artist"
+              className="ms-input ms-input-artist"
               value={artist}
-              onChange={setArtist}
-              placeholder="歌手、组合或原作者"
+              onChange={(e) => handleTextChange(setArtist)(e.target.value)}
+              placeholder="请输入歌手或创作者"
+              autoComplete="off"
             />
 
-            <Field
-              label="发行年份 (自动推导年代)"
-              value={year}
-              onChange={handleYearChange}
-              placeholder="例如 1997"
-              type="number"
-            />
+            <div className="ms-era-label">选择年代</div>
 
-            {/* 年代选择 */}
-            <div className="mobile-era-field">
-              <label className="mobile-field-label">
-                音乐纪元 / 年代
-              </label>
-              <div className="mobile-era-grid">
-                {eraOptions.map((o) => {
-                  const isSelected = era === o.value
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      onClick={() => setEra(o.value)}
-                      className={`mobile-era-option${isSelected ? ' mobile-era-option-selected' : ''}`}
-                    >
-                      <span
-                        className={`mobile-era-icon${isSelected ? ' mobile-era-icon-selected' : ''}`}
-                      >
-                        <EraIcon era={o.icon} size={26} />
-                      </span>
-                      <span className="mobile-era-label">{o.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            {submitEraOptions.map((option) => {
+              const isSelected = era === option.value
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={
+                    `ms-era-option ms-era-option-${option.value}` +
+                    (isSelected ? ' ms-era-option-selected' : '')
+                  }
+                  onClick={() => handleEraSelect(option.value)}
+                  aria-pressed={isSelected}
+                >
+                  {isSelected && (
+                    <img src={eraOptionSelectedUrl} className="ms-era-option-bg" alt="" aria-hidden />
+                  )}
+                  <span className="ms-era-option-icon">
+                    <EraIcon era={option.value} size={36} />
+                  </span>
+                  <span className="ms-era-option-name">{option.name}</span>
+                  <span className="ms-era-option-year">{option.years}</span>
+                </button>
+              )
+            })}
 
-            {/* 错误提示 */}
-            {errMsg && (
-              <div className="mobile-error-bar">
-                <span aria-hidden>⚠️</span>
-                <span className="mobile-error-text">{errMsg}</span>
+            {feedback && (
+              <div className={`ms-feedback${errMsg ? ' ms-feedback-error' : ''}`} role="status">
+                {feedback}
               </div>
             )}
+
+            <button
+              type="submit"
+              className={`ms-submit${isSubmitActive ? ' ms-submit-active' : ''}`}
+              disabled={stage === 'submitting'}
+            >
+              <img src={submitButtonActiveUrl} className="ms-submit-active-bg" alt="" aria-hidden />
+              <span className="ms-submit-label">
+                {stage === 'submitting' ? '上传中' : '上传歌曲'}
+              </span>
+            </button>
           </form>
         </div>
-
-        {/* 提交按钮 */}
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={stage === 'submitting'}
-          className="mobile-submit-button"
-        >
-          <span className="mobile-submit-button-shimmer" />
-          <span className="mobile-submit-button-label">
-            {stage === 'submitting' ? '正在连接大屏...' : '立即提交投稿'}
-          </span>
-        </button>
       </div>
-    </div>
-  )
-}
-
-// 统一的输入框子组件
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  required = false,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-  type?: string
-  required?: boolean
-}) {
-  return (
-    <div className="mobile-field">
-      <label className="mobile-field-label">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        inputMode={type === 'number' ? 'numeric' : undefined}
-        className="mobile-input"
-      />
-    </div>
+    </main>
   )
 }

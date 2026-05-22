@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import InlineSvg from '../components/InlineSvg'
 import { useSongs } from '../hooks/useSongs'
 import { calcScore, voteSong } from '../lib/songs'
+import { decorateMobileVoteBackgroundSvg } from '../lib/mobileSvgFloat'
 import type { Song } from '../types/song'
 
-import bgUrl from '../svg/mobile-vote/Background.svg'
+import bgSvg from '../svg/mobile-vote/Background.svg?raw'
 import panelBgUrl from '../svg/mobile-vote/PanelBackground.svg'
 import backArrowUrl from '../svg/mobile-vote/icons/BackArrow.svg'
 import downChevronUrl from '../svg/mobile-vote/icons/DownChevron.svg'
@@ -21,11 +23,12 @@ import bubble4Url from '../svg/mobile-vote/bubbles/RankBubble4.svg'
 import '../styles/mobile-vote.css'
 
 const BUBBLE_URLS = [bubble1Url, bubble2Url, bubble3Url, bubble4Url]
-const FIRST_ROW_TOP = 475 // Y of first row's bubble top (cy=500, r=25), matching Figma
+const FIRST_ROW_TOP = 245 // Y of first row's bubble top after moving the panel closer to the header
 const ROW_HEIGHT = 78 // Vertical spacing between rows
 const MAX_VISIBLE_ROWS = 10
-const PANEL_CONTENT_BOTTOM = 1067
+const PANEL_CONTENT_BOTTOM = 837
 const ROW_BOTTOM_PADDING = 35
+const floatingVoteBackgroundSvg = decorateMobileVoteBackgroundSvg(bgSvg)
 
 type VoteError = {
   songId: string
@@ -127,20 +130,19 @@ export default function MobileVotePage() {
       <div className="mv-scaler" style={{ transform: `scale(${scale})` }}>
         <div className="mv-canvas" style={{ height: canvasHeight }}>
           {/* 背景：暗底 + 装饰圆 + 顶部漂浮图标 */}
-          <img src={bgUrl} className="mv-bg" alt="" aria-hidden />
+          <InlineSvg html={floatingVoteBackgroundSvg} className="mv-bg mobile-floating-svg" />
 
           {/* 顶部返回按钮 */}
           <button
             type="button"
             className="mv-back-arrow"
-            onClick={() => {
-              if (window.history.length > 1) window.history.back()
-              else window.location.assign('/')
-            }}
+            onClick={() => window.location.assign('?mode=home')}
             aria-label="返回"
           >
             <img src={backArrowUrl} alt="" aria-hidden />
           </button>
+
+          <h1 className="mv-title">代际歌曲榜单</h1>
 
           {/* 排行面板背景（含模糊与阴影） */}
           <img src={panelBgUrl} className="mv-panel-bg" alt="" aria-hidden />

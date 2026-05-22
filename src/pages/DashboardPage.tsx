@@ -6,12 +6,12 @@ import Toast from '../components/Toast'
 import QRCode from '../components/QRCode'
 import EraDiamondFocus from '../components/EraDiamondFocus'
 import EraSongBalls from '../components/EraSongBalls'
+import OverlayAboveCircles from '../components/OverlayAboveCircles'
 import { useSongs } from '../hooks/useSongs'
 import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useResponsiveScale } from '../hooks/useResponsiveScale'
 import type { Song } from '../types/song'
 import overlayBelow from '../svg/circles-overlay/OverlayBelow.svg'
-import overlayAbove from '../svg/circles-overlay/OverlayAbove.svg'
 
 const NEW_SONG_FOCUS_MS = 4500
 
@@ -63,12 +63,7 @@ export default function DashboardPage() {
           alt=""
           style={{ objectFit: 'fill' }}
         />
-        <img
-          src={overlayAbove}
-          className="absolute inset-0 z-[4] h-full w-full pointer-events-none"
-          alt=""
-          style={{ objectFit: 'fill' }}
-        />
+        <OverlayAboveCircles />
         <svg
           className="pointer-events-none absolute left-[80px] top-[76px] z-[6] h-[54px] w-[62px]"
           viewBox="80 76 62 54"

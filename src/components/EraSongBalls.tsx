@@ -184,6 +184,7 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
 
   const renderSongBall = (song: Song, voteEffect: VoteQueueItem | null) => {
     const position = getTargetPosition(song)
+    const floatDelay = `${(seededUnit(song.id + ':float') * -4).toFixed(2)}s`
 
     return (
       <div
@@ -191,7 +192,9 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
         className={'absolute h-[49px] w-[49px] ' + (voteEffect ? 'era-song-ball-vote-bounce' : '')}
         style={{ left: position.x, top: position.y }}
       >
-        <img src={ballIcons[song.era]} alt="" className="h-full w-full select-none" />
+        <span className="era-song-ball-float absolute inset-0" style={{ animationDelay: floatDelay }}>
+          <img src={ballIcons[song.era]} alt="" className="h-full w-full select-none" />
+        </span>
         {voteEffect ? (
           <div className="era-song-ball-vote-plus absolute left-1/2 top-[-18px] rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[18px] font-black leading-none text-white shadow-[0_0_18px_rgba(255,255,255,0.45)]">
             +{voteEffect.amount}

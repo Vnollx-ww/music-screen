@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { Era, Song } from '../types/song'
 
 import record1 from '../svg/center-records/Record1.svg'
@@ -116,16 +117,21 @@ export default function CenterRecords({ songs }: Props) {
       className="pointer-events-none relative shrink-0"
       style={{ width: 820, height: 520 }}
     >
-      {items.map(({ song, artwork, slot }) => {
+      {items.map(({ song, artwork, slot }, index) => {
         const dx = slot.center.x - artwork.origin.x
         const dy = slot.center.y - artwork.origin.y
+        const recordStyle = {
+          '--record-x': `${dx}px`,
+          '--record-y': `${dy}px`,
+          animationDelay: `${(index * -0.7).toFixed(2)}s`,
+        } as CSSProperties
         return (
           <img
             key={`r-${artwork.id}-${slot.id}-${song.id}`}
             src={artwork.src}
             alt=""
-            className="absolute inset-0 h-full w-full select-none"
-            style={{ transform: `translate(${dx}px, ${dy}px)` }}
+            className="record-float absolute inset-0 h-full w-full select-none"
+            style={recordStyle}
           />
         )
       })}

@@ -23,12 +23,12 @@ export default function DashboardPage() {
         style={{ transform: `scale(${scale})` }}
       >
         <img
-          src={encodeURI('/大屏图片.png')}
+          src="/dashboard-background.png"
           className="absolute inset-0 z-0 h-full w-full object-cover"
           alt=""
         />
         <img
-          src={encodeURI('/大屏图片2.png')}
+          src="/dashboard-frame.png"
           className="absolute inset-0 z-[1] h-full w-full object-cover opacity-20 mix-blend-overlay"
           alt=""
         />

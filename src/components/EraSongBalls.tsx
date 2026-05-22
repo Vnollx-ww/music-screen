@@ -5,7 +5,7 @@ import vinylBall from '../svg/ranking-panel-left/icons/Vinyl.svg'
 import cdBall from '../svg/ranking-panel-left/icons/Cd.svg'
 import tapeBall from '../svg/ranking-panel-left/icons/Tape.svg'
 import digitalBall from '../svg/ranking-panel-left/icons/Digital.svg'
-import aiBall from '../svg/ranking-panel-left/icons/Ai.svg'
+import aiBall from '../svg/ranking-panel-right/icons/Ai.svg'
 
 interface Props {
   songs: Song[]

@@ -120,15 +120,6 @@ export default function MobileSubmitPage() {
       <div className="mobile-page-bg" />
 
       <div className="mobile-page-container">
-        <div className="mobile-tabs">
-          <a href="?mode=vote" className="mobile-tab">
-            投票推榜
-          </a>
-          <a href="?mode=mobile" className="mobile-tab mobile-tab-active">
-            投稿歌曲
-          </a>
-        </div>
-
         {/* 表单卡片 */}
         <div className="mobile-submit-card">
           <div className="mobile-submit-card-bg" />

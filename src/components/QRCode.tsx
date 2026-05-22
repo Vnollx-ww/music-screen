@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 export default function QRCode() {
   const lanHost = import.meta.env.VITE_LAN_HOST || window.location.hostname
   const lanPort = import.meta.env.VITE_LAN_PORT || window.location.port
-  const url = `http://${lanHost}:${lanPort}/?mode=vote`
+  const url = `http://${lanHost}:${lanPort}/?mode=home`
 
   return (
     <div className="absolute bottom-[58px] right-[66px] z-30 flex flex-col items-end gap-3">

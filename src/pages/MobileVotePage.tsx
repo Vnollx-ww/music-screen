@@ -142,12 +142,6 @@ export default function MobileVotePage() {
             <img src={backArrowUrl} alt="" aria-hidden />
           </button>
 
-          {/* 顶部页签 */}
-          <nav className="mv-tabs" aria-label="模式切换">
-            <a href="?mode=vote" className="mv-tab mv-tab-active">投票推榜</a>
-            <a href="?mode=mobile" className="mv-tab">投稿歌曲</a>
-          </nav>
-
           {/* 排行面板背景（含模糊与阴影） */}
           <img src={panelBgUrl} className="mv-panel-bg" alt="" aria-hidden />
 

@@ -106,6 +106,18 @@
   animation: eraDiamondIconLift 3s ease-in-out both;
 }
 
+.era-diamond-layer {
+  opacity: 1;
+  transform-origin: center center;
+  transition: opacity 0.65s ease, transform 0.65s ease;
+  will-change: opacity, transform;
+}
+
+.era-diamond-layer.era-diamond-dimmed {
+  opacity: 0;
+  transform: scale(0.96);
+}
+
 .era-song-ball-fly {
   animation: eraSongBallFly 2.34s ease-in-out 0.66s both;
 }

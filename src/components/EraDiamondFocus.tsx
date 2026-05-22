@@ -24,20 +24,33 @@ const diamonds: { era: Era; panel: string; icon: string }[] = [
 ]
 
 export default function EraDiamondFocus({ activeEra }: Props) {
-  const visibleDiamonds = activeEra ? diamonds.filter(({ era }) => era === activeEra) : diamonds
-
   return (
     <div className="pointer-events-none absolute inset-0">
-      {visibleDiamonds.map(({ era, panel, icon }) => (
-        <div key={era} className="absolute inset-0">
-          <img src={panel} alt="" className="absolute inset-0 z-[3] h-full w-full select-none object-fill" />
-          <img
-            src={icon}
-            alt=""
-            className={'absolute inset-0 z-[5] h-full w-full select-none object-fill ' + (activeEra ? 'era-diamond-icon-lift' : '')}
-          />
-        </div>
-      ))}
+      {diamonds.map(({ era, panel, icon }) => {
+        const isActive = activeEra === era
+        const isDimmed = activeEra !== null && !isActive
+        return (
+          <div key={era} className="absolute inset-0">
+            <img
+              src={panel}
+              alt=""
+              className={
+                'era-diamond-layer absolute inset-0 z-[3] h-full w-full select-none object-fill' +
+                (isDimmed ? ' era-diamond-dimmed' : '')
+              }
+            />
+            <img
+              src={icon}
+              alt=""
+              className={
+                'era-diamond-layer absolute inset-0 z-[5] h-full w-full select-none object-fill' +
+                (isActive ? ' era-diamond-icon-lift' : '') +
+                (isDimmed ? ' era-diamond-dimmed' : '')
+              }
+            />
+          </div>
+        )
+      })}
     </div>
   )
 }

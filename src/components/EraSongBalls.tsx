@@ -113,9 +113,11 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
   const previousVotesRef = useRef<Map<string, number> | null>(null)
   const activeVoteRef = useRef<VoteQueueItem | null>(null)
   const sequenceRef = useRef(0)
-  const staticSongs = activeSong ? songs.filter((song) => song.id !== activeSong.id) : songs
+  const flySong = activeSong && activeSong.era !== 'ai' ? activeSong : null
+  const ballSongs = songs.filter((song) => song.era !== 'ai')
+  const staticSongs = flySong ? ballSongs.filter((song) => song.id !== flySong.id) : ballSongs
   const staticSongIds = new Set(staticSongs.map((song) => song.id))
-  const detachedVoteSong = activeVote ? songs.find((song) => song.id === activeVote.songId && !staticSongIds.has(song.id)) : null
+  const detachedVoteSong = activeVote ? ballSongs.find((song) => song.id === activeVote.songId && !staticSongIds.has(song.id)) : null
 
   const enqueueVoteIncrement = useCallback((songId: string, amount: number) => {
     const active = activeVoteRef.current
@@ -209,13 +211,13 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
 
       {detachedVoteSong ? renderSongBall(detachedVoteSong, activeVote) : null}
 
-      {activeSong ? (
+      {flySong ? (
         <img
-          key={activeSong.id}
-          src={ballIcons[activeSong.era]}
+          key={flySong.id}
+          src={ballIcons[flySong.era]}
           alt=""
           className="era-song-ball-fly absolute h-[49px] w-[49px] select-none"
-          style={getFlyStyle(activeSong)}
+          style={getFlyStyle(flySong)}
         />
       ) : null}
     </div>

@@ -3,7 +3,6 @@ import type { Song } from '../types/song'
 
 import frameLeft from '../svg/ranking-panel-left/Frame.svg'
 import rowsLeft from '../svg/ranking-panel-left/Rows.svg'
-import rankCirclesLeft from '../svg/ranking-panel-left/RankCircles.svg'
 import iconsLeft from '../svg/ranking-panel-left/Icons.svg'
 import badgeSlotsLeft from '../svg/ranking-panel-left/BadgeSlots.svg'
 
@@ -35,7 +34,6 @@ interface PanelLayout {
   badgeText: 'light' | 'dark'
   frame: string
   rows: string
-  rankCircles: string | null
   icons: string
   badgeSlots: string
 }
@@ -57,7 +55,6 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     badgeText: 'light',
     frame: frameLeft,
     rows: rowsLeft,
-    rankCircles: rankCirclesLeft,
     icons: iconsLeft,
     badgeSlots: badgeSlotsLeft,
   },
@@ -77,7 +74,6 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     badgeText: 'dark',
     frame: frameRight,
     rows: rowsRight,
-    rankCircles: null,
     icons: iconsRight,
     badgeSlots: badgeSlotsRight,
   },
@@ -148,9 +144,6 @@ export default function RankingPanel({ title, songs, variant }: Props) {
     <section className="relative shrink-0" style={{ width: layout.width, height: layout.height }}>
       <img src={layout.frame} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
       <img src={layout.rows} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
-      {layout.rankCircles && (
-        <img src={layout.rankCircles} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
-      )}
       <img src={layout.icons} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
       <img src={layout.badgeSlots} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
 

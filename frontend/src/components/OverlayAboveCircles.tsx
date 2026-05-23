@@ -9,7 +9,7 @@ const OVERLAY_ABOVE_HTML = overlayAboveSvg.replace(
 function OverlayAboveCircles() {
   return (
     <div
-      className="overlay-above-svg absolute inset-0 z-[4] h-full w-full pointer-events-none"
+      className="overlay-above-svg absolute inset-0 z-[6] h-full w-full pointer-events-none"
       dangerouslySetInnerHTML={{ __html: OVERLAY_ABOVE_HTML }}
     />
   )

@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Era, Song } from '../types/song'
 
-import vinylBall from '../svg/ranking-panel-left/icons/Vinyl.svg'
-import cdBall from '../svg/ranking-panel-left/icons/Cd.svg'
-import tapeBall from '../svg/ranking-panel-left/icons/Tape.svg'
-import digitalBall from '../svg/ranking-panel-left/icons/Digital.svg'
-import aiBall from '../svg/ranking-panel-right/icons/Ai.svg'
+import record1Svg from '../svg/center-records/Record1.svg?raw'
+import record2Svg from '../svg/center-records/Record2.svg?raw'
+import record3Svg from '../svg/center-records/Record3.svg?raw'
+import record4Svg from '../svg/center-records/Record4.svg?raw'
+import record5Svg from '../svg/center-records/Record5.svg?raw'
+import record6Svg from '../svg/center-records/Record6.svg?raw'
 
 interface Props {
   songs: Song[]
@@ -29,16 +30,35 @@ type FlyStyle = CSSProperties & {
   '--ball-dy': string
 }
 
+type ClassicEra = Exclude<Era, 'ai'>
+
+interface BallArtwork {
+  id: string
+  svg: string
+}
+
 const BALL_SIZE = 49
 const BALL_EDGE = BALL_SIZE / 2 + 6
+const MIN_CENTER_DISTANCE = BALL_SIZE * 0.86
+const RELAXED_CENTER_DISTANCES = [MIN_CENTER_DISTANCE, BALL_SIZE * 0.78, BALL_SIZE * 0.7, BALL_SIZE * 0.62]
+const POSITION_ATTEMPTS = 90
 const VOTE_EFFECT_MS = 1050
 
-const ballIcons: Record<Era, string> = {
-  vinyl: vinylBall,
-  cd: cdBall,
-  tape: tapeBall,
-  digital: digitalBall,
-  ai: aiBall,
+const ballArtworks: Record<ClassicEra, BallArtwork[]> = {
+  vinyl: [
+    { id: 'record-1', svg: createBallSvg(record1Svg, '694 182 214 214') },
+    { id: 'record-3', svg: createBallSvg(record3Svg, '848 379 164 164') },
+  ],
+  cd: [
+    { id: 'record-6', svg: createBallSvg(record6Svg, '444 303 178 178') },
+  ],
+  tape: [
+    { id: 'record-5', svg: createBallSvg(record5Svg, '1084 487 162 162') },
+  ],
+  digital: [
+    { id: 'record-2', svg: createBallSvg(record2Svg, '524 407 206 206') },
+    { id: 'record-4', svg: createBallSvg(record4Svg, '935 287 194 194') },
+  ],
 }
 
 const startPositions: Record<Era, Position> = {
@@ -69,6 +89,25 @@ function seededUnit(seed: string) {
   return hashString(seed) / 4294967295
 }
 
+function createBallSvg(svg: string, viewBox: string) {
+  return svg.replace(
+    /<svg\b[^>]*>/,
+    `<svg width="${BALL_SIZE}" height="${BALL_SIZE}" viewBox="${viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">`,
+  )
+}
+
+function isClassicEra(era: Era): era is ClassicEra {
+  return era !== 'ai'
+}
+
+function getBallArtwork(song: Song) {
+  if (!isClassicEra(song.era)) return ballArtworks.vinyl[0]
+
+  const artworks = ballArtworks[song.era]
+  const index = Math.floor(seededUnit(song.id + ':artwork') * artworks.length) % artworks.length
+  return artworks[index]
+}
+
 function lerp(from: number, to: number, amount: number) {
   return from + (to - from) * amount
 }
@@ -91,20 +130,79 @@ function getDiamondHorizontalBounds(y: number) {
   }
 }
 
-function getTargetPosition(song: Song): Position {
+function getCandidatePosition(song: Song, attempt: number): Position {
   const minY = targetDiamond.top.y + BALL_EDGE * 2
   const maxY = targetDiamond.bottom.y - BALL_EDGE * 2
-  const centerY = minY + seededUnit(song.id + ':y') * (maxY - minY)
+  const seed = `${song.id}:target:${attempt}`
+  const centerY = minY + seededUnit(seed + ':y') * (maxY - minY)
   const upperBounds = getDiamondHorizontalBounds(centerY - BALL_EDGE)
   const lowerBounds = getDiamondHorizontalBounds(centerY + BALL_EDGE)
   const minX = Math.max(upperBounds.left, lowerBounds.left) + BALL_EDGE
   const maxX = Math.min(upperBounds.right, lowerBounds.right) - BALL_EDGE
-  const centerX = minX + seededUnit(song.id + ':x') * (maxX - minX)
+  const centerX = minX + seededUnit(seed + ':x') * Math.max(0, maxX - minX)
 
   return {
     x: Math.round(centerX - BALL_SIZE / 2),
     y: Math.round(centerY - BALL_SIZE / 2),
   }
+}
+
+function getSongCreatedTime(song: Song) {
+  const time = Date.parse(song.created_at)
+  return Number.isNaN(time) ? 0 : time
+}
+
+function compareSongsForPlacement(a: Song, b: Song) {
+  const timeDiff = getSongCreatedTime(a) - getSongCreatedTime(b)
+  if (timeDiff !== 0) return timeDiff
+  return a.id.localeCompare(b.id)
+}
+
+function getCenterDistance(a: Position, b: Position) {
+  const dx = a.x - b.x
+  const dy = a.y - b.y
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+function getNearestDistance(position: Position, placed: Position[]) {
+  if (placed.length === 0) return Infinity
+  return Math.min(...placed.map((placedPosition) => getCenterDistance(position, placedPosition)))
+}
+
+function createTargetPositions(songs: Song[]) {
+  const positions = new Map<string, Position>()
+  const placed: Position[] = []
+
+  for (const song of [...songs].sort(compareSongsForPlacement)) {
+    let selectedPosition: Position | null = null
+    let bestPosition = getCandidatePosition(song, 0)
+    let bestDistance = getNearestDistance(bestPosition, placed)
+
+    for (const minDistance of RELAXED_CENTER_DISTANCES) {
+      for (let attempt = 0; attempt < POSITION_ATTEMPTS; attempt += 1) {
+        const candidate = getCandidatePosition(song, attempt)
+        const candidateDistance = getNearestDistance(candidate, placed)
+
+        if (candidateDistance > bestDistance) {
+          bestPosition = candidate
+          bestDistance = candidateDistance
+        }
+
+        if (candidateDistance >= minDistance) {
+          selectedPosition = candidate
+          break
+        }
+      }
+
+      if (selectedPosition) break
+    }
+
+    const position = selectedPosition ?? bestPosition
+    positions.set(song.id, position)
+    placed.push(position)
+  }
+
+  return positions
 }
 
 export default function EraSongBalls({ songs, activeSong }: Props) {
@@ -114,10 +212,16 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
   const activeVoteRef = useRef<VoteQueueItem | null>(null)
   const sequenceRef = useRef(0)
   const flySong = activeSong && activeSong.era !== 'ai' ? activeSong : null
-  const ballSongs = songs.filter((song) => song.era !== 'ai')
+  const ballSongs = useMemo(() => songs.filter((song) => song.era !== 'ai'), [songs])
+  const layoutSongs = useMemo(() => {
+    if (!flySong || ballSongs.some((song) => song.id === flySong.id)) return ballSongs
+    return [...ballSongs, flySong]
+  }, [ballSongs, flySong])
+  const targetPositions = useMemo(() => createTargetPositions(layoutSongs), [layoutSongs])
   const staticSongs = flySong ? ballSongs.filter((song) => song.id !== flySong.id) : ballSongs
   const staticSongIds = new Set(staticSongs.map((song) => song.id))
   const detachedVoteSong = activeVote ? ballSongs.find((song) => song.id === activeVote.songId && !staticSongIds.has(song.id)) : null
+  const getSongPosition = (song: Song) => targetPositions.get(song.id) ?? getCandidatePosition(song, 0)
 
   const enqueueVoteIncrement = useCallback((songId: string, amount: number) => {
     const active = activeVoteRef.current
@@ -165,10 +269,14 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
   useEffect(() => {
     if (activeVote || voteQueue.length === 0) return
 
-    const [next, ...rest] = voteQueue
-    activeVoteRef.current = next
-    setActiveVote(next)
-    setVoteQueue(rest)
+    const timer = window.setTimeout(() => {
+      const [next, ...rest] = voteQueue
+      activeVoteRef.current = next
+      setActiveVote(next)
+      setVoteQueue(rest)
+    }, 0)
+
+    return () => window.clearTimeout(timer)
   }, [activeVote, voteQueue])
 
   useEffect(() => {
@@ -183,7 +291,8 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
   }, [activeVote])
 
   const renderSongBall = (song: Song, voteEffect: VoteQueueItem | null) => {
-    const position = getTargetPosition(song)
+    const position = getSongPosition(song)
+    const artwork = getBallArtwork(song)
     const floatDelay = `${(seededUnit(song.id + ':float') * -4).toFixed(2)}s`
 
     return (
@@ -193,7 +302,10 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
         style={{ left: position.x, top: position.y }}
       >
         <span className="era-song-ball-float absolute inset-0" style={{ animationDelay: floatDelay }}>
-          <img src={ballIcons[song.era]} alt="" className="h-full w-full select-none" />
+          <span
+            className="block h-full w-full select-none"
+            dangerouslySetInnerHTML={{ __html: artwork.svg }}
+          />
         </span>
         {voteEffect ? (
           <div className="era-song-ball-vote-plus absolute left-1/2 top-[-18px] rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[18px] font-black leading-none text-white shadow-[0_0_18px_rgba(255,255,255,0.45)]">
@@ -215,21 +327,19 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
       {detachedVoteSong ? renderSongBall(detachedVoteSong, activeVote) : null}
 
       {flySong ? (
-        <img
+        <span
           key={flySong.id}
-          src={ballIcons[flySong.era]}
-          alt=""
           className="era-song-ball-fly absolute h-[49px] w-[49px] select-none"
-          style={getFlyStyle(flySong)}
+          style={getFlyStyle(flySong, getSongPosition(flySong))}
+          dangerouslySetInnerHTML={{ __html: getBallArtwork(flySong).svg }}
         />
       ) : null}
     </div>
   )
 }
 
-function getFlyStyle(song: Song): FlyStyle {
+function getFlyStyle(song: Song, target: Position): FlyStyle {
   const start = startPositions[song.era]
-  const target = getTargetPosition(song)
 
   return {
     left: start.x,

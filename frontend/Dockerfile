@@ -1,20 +1,15 @@
 # Build:
-# docker build --no-cache --build-arg VITE_API_BASE_URL="http://111.230.105.54:6060/api" --build-arg VITE_WS_URL="ws://111.230.105.54:6060/api/ws" -t music-screen-frontend .
+# docker build --no-cache -t music-screen-frontend .
 
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-ARG VITE_API_BASE_URL
-ARG VITE_WS_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_WS_URL=$VITE_WS_URL
-
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
-RUN npm run build
+RUN npm run build:prod
 
 FROM nginx:1.27-alpine AS runner
 

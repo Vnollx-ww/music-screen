@@ -3,7 +3,7 @@ from ipaddress import ip_address
 from uuid import uuid4
 
 from fastapi import HTTPException, Request, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .models import Song, SongVoteIpLimit
@@ -47,26 +47,35 @@ def vote_song(db: Session, song_id: str, voter_ip: str) -> Song:
         if song is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="歌曲不存在")
 
+        now = datetime.now()
+        db.execute(
+            text(
+                """
+                INSERT IGNORE INTO song_vote_ip_limits
+                    (ip_address, vote_count, first_voted_at, last_voted_at)
+                VALUES
+                    (:ip_address, 0, :first_voted_at, :last_voted_at)
+                """
+            ),
+            {
+                "ip_address": normalized_ip,
+                "first_voted_at": now,
+                "last_voted_at": now,
+            },
+        )
+
         limit = db.scalar(
             select(SongVoteIpLimit)
             .where(SongVoteIpLimit.ip_address == normalized_ip)
             .with_for_update()
         )
-        now = datetime.now()
-
         if limit is None:
-            limit = SongVoteIpLimit(
-                ip_address=normalized_ip,
-                vote_count=1,
-                first_voted_at=now,
-                last_voted_at=now,
-            )
-            db.add(limit)
-        else:
-            if limit.vote_count >= settings.vote_limit_per_ip:
-                raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="当前 IP 投票次数已达上限")
-            limit.vote_count += 1
-            limit.last_voted_at = now
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="投票计数初始化失败")
+
+        if limit.vote_count >= settings.vote_limit_per_ip:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="当前 IP 投票次数已达上限")
+        limit.vote_count += 1
+        limit.last_voted_at = now
 
         song.votes += 1
         db.commit()

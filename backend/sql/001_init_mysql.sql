@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS songs (
   recommend_count INT UNSIGNED NOT NULL DEFAULT 0,
   created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (id),
+  KEY songs_created_at_desc_idx (created_at DESC),
+  KEY songs_votes_desc_idx (votes DESC),
   CONSTRAINT songs_era_check CHECK (era IN ('vinyl', 'tape', 'cd', 'digital', 'ai'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -22,9 +24,6 @@ CREATE TABLE IF NOT EXISTS song_vote_ip_limits (
   vote_count INT UNSIGNED NOT NULL DEFAULT 0,
   first_voted_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   last_voted_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  PRIMARY KEY (ip_address)
+  PRIMARY KEY (ip_address),
+  KEY song_vote_ip_limits_last_voted_at_desc_idx (last_voted_at DESC)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE INDEX songs_created_at_desc_idx ON songs (created_at DESC);
-CREATE INDEX songs_votes_desc_idx ON songs (votes DESC);
-CREATE INDEX song_vote_ip_limits_last_voted_at_desc_idx ON song_vote_ip_limits (last_voted_at DESC);

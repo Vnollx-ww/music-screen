@@ -16,23 +16,25 @@ def health() -> dict[str, str]:
 
 @router.get("/songs", response_model=list[SongOut])
 def get_songs(db: Session = Depends(get_db)) -> list[SongOut]:
-    return list_songs(db)
+    return [SongOut.model_validate(song) for song in list_songs(db)]
 
 
 @router.post("/songs", response_model=SongOut, status_code=status.HTTP_201_CREATED)
 async def post_song(payload: CreateSongRequest, db: Session = Depends(get_db)) -> SongOut:
     song = create_song(db, payload)
-    event = SongEvent(type="insert", song=SongOut.model_validate(song))
+    song_out = SongOut.model_validate(song)
+    event = SongEvent(type="insert", song=song_out)
     await manager.broadcast_json(event.model_dump(mode="json"))
-    return song
+    return song_out
 
 
 @router.post("/songs/{song_id}/vote", response_model=SongOut)
 async def post_song_vote(song_id: str, request: Request, db: Session = Depends(get_db)) -> SongOut:
     song = vote_song(db, song_id, get_client_ip(request))
-    event = SongEvent(type="update", song=SongOut.model_validate(song))
+    song_out = SongOut.model_validate(song)
+    event = SongEvent(type="update", song=song_out)
     await manager.broadcast_json(event.model_dump(mode="json"))
-    return song
+    return song_out
 
 
 @router.websocket("/ws")

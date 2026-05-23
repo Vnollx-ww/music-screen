@@ -11,13 +11,8 @@ class Settings(BaseSettings):
         default="mysql+pymysql://music_screen:music_screen@127.0.0.1:3306/music_screen?charset=utf8mb4",
         alias="DATABASE_URL",
     )
-    cors_origins: list[str] = Field(
-        default_factory=lambda: [
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-        ]
-    )
-    cors_origin_regex: str | None = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+):\d+$"
+    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    cors_origin_regex: str | None = None
     vote_limit_per_ip: int = 3
     websocket_ping_message: str = "ping"
 

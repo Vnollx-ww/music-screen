@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import EraIcon from '../components/EraIcon'
 import InlineSvg from '../components/InlineSvg'
@@ -12,7 +12,7 @@ import eraOptionSelectedUrl from '../svg/mobile-submit/EraOptionSelected.svg'
 import submitButtonActiveUrl from '../svg/mobile-submit/SubmitButtonActive.svg'
 import '../styles/mobile-submit.css'
 
-type Stage = 'form' | 'submitting' | 'success'
+type Stage = 'form' | 'animating' | 'submitting' | 'success'
 
 type SubmitEraOption = {
   value: Era
@@ -28,6 +28,7 @@ const submitEraOptions: SubmitEraOption[] = [
 ]
 
 const floatingSubmitBaseSvg = decorateMobileSubmitBaseSvg(submitBaseSvg)
+const SUBMIT_ANIMATION_MS = 2600
 
 function useFitToWidth(designWidth: number) {
   const [scale, setScale] = useState(() => {
@@ -50,10 +51,20 @@ export default function MobileSubmitPage() {
   const [era, setEra] = useState<Era | null>(null)
   const [stage, setStage] = useState<Stage>('form')
   const [errMsg, setErrMsg] = useState('')
+  const submitTimerRef = useRef<number | null>(null)
+  const submitInProgressRef = useRef(false)
   const scale = useFitToWidth(390)
 
-  const handleSubmit = async (e: FormEvent) => {
+  useEffect(() => {
+    return () => {
+      if (submitTimerRef.current !== null) window.clearTimeout(submitTimerRef.current)
+    }
+  }, [])
+
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
+
+    if (stage !== 'form' || submitInProgressRef.current) return
 
     if (!title.trim()) {
       setErrMsg('请输入歌曲名')
@@ -68,17 +79,31 @@ export default function MobileSubmitPage() {
     }
 
     setErrMsg('')
-    setStage('submitting')
+    setStage('animating')
+    submitInProgressRef.current = true
 
-    try {
-      await insertSong({ title: title.trim(), artist: artist.trim() || undefined, era })
-      setTitle('')
-      setArtist('')
-      setStage('success')
-    } catch (err: unknown) {
-      setErrMsg(err instanceof Error ? err.message : '提交失败')
-      setStage('form')
-    }
+    const songTitle = title.trim()
+    const songArtist = artist.trim() || undefined
+    const songEra = era
+
+    submitTimerRef.current = window.setTimeout(() => {
+      submitTimerRef.current = null
+      setStage('submitting')
+
+      void insertSong({ title: songTitle, artist: songArtist, era: songEra })
+        .then(() => {
+          setTitle('')
+          setArtist('')
+          setStage('success')
+        })
+        .catch((err: unknown) => {
+          setErrMsg(err instanceof Error ? err.message : '提交失败')
+          setStage('form')
+        })
+        .finally(() => {
+          submitInProgressRef.current = false
+        })
+    }, SUBMIT_ANIMATION_MS)
   }
 
   const handleTextChange = (setter: (value: string) => void) => (value: string) => {
@@ -94,19 +119,27 @@ export default function MobileSubmitPage() {
   }
 
   const selectedEraLabel = era ? eraConfig[era].label : '选择年代'
-  const feedback = errMsg || (stage === 'success' ? '投稿成功，歌曲正在同步到现场大屏' : '')
-  const isSubmitActive = stage === 'submitting' || stage === 'success'
+  const feedback = errMsg
+  const isUploadLocked = stage !== 'form'
+  const isUploadFlow = stage === 'animating' || stage === 'submitting' || stage === 'success'
+  const isSubmitActive = isUploadFlow
+  const submitLabel = stage === 'animating' || stage === 'submitting' ? '推榜中' : '上传歌曲'
+  const canvasClassName =
+    `ms-canvas${isUploadFlow ? ' ms-canvas-upload-flow' : ''}` +
+    (stage === 'submitting' ? ' ms-canvas-submitting' : '') +
+    (stage === 'success' ? ' ms-canvas-success' : '')
 
   return (
     <main className="ms-page">
       <div className="ms-scaler" style={{ height: 844 * scale }}>
-        <div className="ms-canvas" style={{ transform: `scale(${scale})` }}>
+        <div className={canvasClassName} style={{ transform: `scale(${scale})` }}>
           <InlineSvg html={floatingSubmitBaseSvg} className="ms-base mobile-floating-svg" />
 
           <button
             type="button"
             className="ms-back"
             aria-label="返回主页"
+            disabled={isUploadLocked}
             onClick={() => window.location.assign('?mode=home')}
           />
 
@@ -115,6 +148,17 @@ export default function MobileSubmitPage() {
           {era && <SubmitTopRecord era={era} className="ms-top-icon" />}
 
           <div className="ms-era-pill-label">{selectedEraLabel}</div>
+
+          {(stage === 'submitting' || stage === 'success') && (
+            <div className="ms-upload-status" role="status">
+              <span className="ms-upload-status-title">
+                {stage === 'success' ? '已推榜' : '正在推榜'}
+              </span>
+              <span className="ms-upload-status-subtitle">
+                {stage === 'success' ? '歌曲正在同步到现场大屏' : '请稍候，正在写入榜单'}
+              </span>
+            </div>
+          )}
 
           <form className="ms-form" onSubmit={handleSubmit}>
             <label className="ms-field-label ms-field-label-title" htmlFor="mobile-submit-title">
@@ -127,6 +171,7 @@ export default function MobileSubmitPage() {
               onChange={(e) => handleTextChange(setTitle)(e.target.value)}
               placeholder="请输入歌曲名称"
               autoComplete="off"
+              disabled={isUploadLocked}
             />
 
             <label className="ms-field-label ms-field-label-artist" htmlFor="mobile-submit-artist">
@@ -139,6 +184,7 @@ export default function MobileSubmitPage() {
               onChange={(e) => handleTextChange(setArtist)(e.target.value)}
               placeholder="请输入歌手或创作者"
               autoComplete="off"
+              disabled={isUploadLocked}
             />
 
             <div className="ms-era-label">选择年代</div>
@@ -155,6 +201,7 @@ export default function MobileSubmitPage() {
                   }
                   onClick={() => handleEraSelect(option.value)}
                   aria-pressed={isSelected}
+                  disabled={isUploadLocked}
                 >
                   {isSelected && (
                     <img src={eraOptionSelectedUrl} className="ms-era-option-bg" alt="" aria-hidden />
@@ -177,12 +224,10 @@ export default function MobileSubmitPage() {
             <button
               type="submit"
               className={`ms-submit${isSubmitActive ? ' ms-submit-active' : ''}`}
-              disabled={stage === 'submitting'}
+              disabled={isUploadLocked}
             >
               <img src={submitButtonActiveUrl} className="ms-submit-active-bg" alt="" aria-hidden />
-              <span className="ms-submit-label">
-                {stage === 'submitting' ? '上传中' : '上传歌曲'}
-              </span>
+              <span className="ms-submit-label">{submitLabel}</span>
             </button>
           </form>
         </div>

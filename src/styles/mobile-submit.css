@@ -48,6 +48,10 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.ms-back:disabled {
+  cursor: default;
+}
+
 .ms-title {
   position: absolute;
   top: 37px;
@@ -75,6 +79,7 @@
   overflow: hidden;
   pointer-events: none;
   user-select: none;
+  transform-origin: center center;
 }
 
 .ms-era-pill-label {
@@ -336,4 +341,172 @@
   font-weight: 900;
   letter-spacing: 0.16em;
   text-shadow: 0 4px 14px rgba(0, 0, 0, 0.42);
+}
+
+.ms-upload-status {
+  position: absolute;
+  top: 310px;
+  left: 36px;
+  z-index: 9;
+  width: 318px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 24px;
+  border: 1px solid rgba(233, 199, 255, 0.28);
+  border-radius: 28px;
+  background: rgba(20, 22, 31, 0.74);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(14px) scale(0.98);
+  backdrop-filter: blur(16px);
+}
+
+.ms-upload-status-title {
+  color: #fff;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1.1;
+  text-shadow: 0 0 22px rgba(233, 199, 255, 0.42);
+}
+
+.ms-upload-status-subtitle {
+  color: #E9C7FF;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.ms-canvas-upload-flow .ms-title {
+  animation: msSubmitDissolveOut 0.58s ease forwards;
+}
+
+.ms-canvas-upload-flow .mobile-svg-submit-top-frame {
+  pointer-events: none;
+  animation: msSubmitFrameDissolve 0.72s ease forwards;
+}
+
+.ms-canvas-upload-flow .ms-form,
+.ms-canvas-upload-flow .mobile-svg-submit-form-shell {
+  pointer-events: none;
+  animation: msSubmitDissolveOut 0.9s ease forwards;
+}
+
+.ms-canvas-upload-flow .ms-era-pill-label,
+.ms-canvas-upload-flow .mobile-svg-submit-era-pill {
+  pointer-events: none;
+  transform-origin: center center;
+  animation: msSubmitPillDissolve 1.15s ease 0.55s forwards;
+}
+
+.ms-canvas-upload-flow .ms-top-icon {
+  z-index: 10;
+  animation: msSubmitRecordJourney 2.6s cubic-bezier(0.2, 0.72, 0.18, 1) forwards;
+}
+
+.ms-canvas-success .ms-top-icon {
+  animation: msSubmitRecordComplete 0.42s ease forwards;
+}
+
+.ms-canvas-submitting .ms-upload-status,
+.ms-canvas-success .ms-upload-status {
+  animation: msSubmitStatusReveal 0.42s ease forwards;
+}
+
+@keyframes msSubmitDissolveOut {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+
+  60% {
+    opacity: 0.28;
+    filter: blur(5px);
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(-10px) scale(0.985);
+  }
+}
+
+@keyframes msSubmitFrameDissolve {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(10px);
+  }
+}
+
+@keyframes msSubmitPillDissolve {
+  0% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(18px) scale(0.92);
+  }
+}
+
+@keyframes msSubmitRecordJourney {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+
+  16% {
+    transform: translate3d(0, -24px, 0) scale(0.88) rotate(-6deg);
+  }
+
+  46% {
+    transform: translate3d(0, 224px, 0) scale(1.08) rotate(5deg);
+  }
+
+  62% {
+    transform: translate3d(0, 216px, 0) scale(1.02) rotate(0deg);
+  }
+
+  100% {
+    transform: translate3d(0, -151px, 0) scale(0.42) rotate(0deg);
+  }
+}
+
+@keyframes msSubmitRecordComplete {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, -151px, 0) scale(0.42) rotate(0deg);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -164px, 0) scale(0.28) rotate(0deg);
+  }
+}
+
+@keyframes msSubmitStatusReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

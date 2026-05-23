@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type UIEvent } from 'react'
 import InlineSvg from '../components/InlineSvg'
 import { useSongs } from '../hooks/useSongs'
 import { calcScore, voteSong } from '../lib/songs'
@@ -28,6 +28,7 @@ const ROW_HEIGHT = 78 // Vertical spacing between rows
 const MAX_VISIBLE_ROWS = 10
 const PANEL_CONTENT_BOTTOM = 837
 const ROW_BOTTOM_PADDING = 35
+const PAGE_SIZE = 20
 const floatingVoteBackgroundSvg = decorateMobileVoteBackgroundSvg(bgSvg)
 
 type VoteError = {
@@ -87,11 +88,16 @@ export default function MobileVotePage() {
   const [votedId, setVotedId] = useState<string | null>(null)
   const [errMsg, setErrMsg] = useState('')
   const [voteError, setVoteError] = useState<VoteError | null>(null)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const scale = useFitToWidth(390)
 
   const rankedSongs = useMemo(() => {
     return [...songs].sort((a, b) => calcScore(b) - calcScore(a))
   }, [songs])
+
+  const visibleRankedSongs = useMemo(() => {
+    return rankedSongs.slice(0, visibleCount)
+  }, [rankedSongs, visibleCount])
 
   const handleVote = async (song: Song) => {
     if (votingId) return
@@ -117,10 +123,20 @@ export default function MobileVotePage() {
     }
   }
 
-  const visibleRowCount = Math.min(rankedSongs.length, MAX_VISIBLE_ROWS)
+  const handleListScroll = (event: UIEvent<HTMLDivElement>) => {
+    const list = event.currentTarget
+    const distanceToBottom = list.scrollHeight - list.scrollTop - list.clientHeight
+
+    if (distanceToBottom > ROW_HEIGHT || visibleCount >= rankedSongs.length) return
+
+    setVisibleCount((count) => Math.min(count + PAGE_SIZE, rankedSongs.length))
+  }
+
+  const hasMoreSongs = visibleRankedSongs.length < rankedSongs.length
+  const visibleRowCount = Math.min(visibleRankedSongs.length, MAX_VISIBLE_ROWS)
   const maxListHeight = PANEL_CONTENT_BOTTOM - FIRST_ROW_TOP
   const listHeight = Math.min(visibleRowCount * ROW_HEIGHT, maxListHeight)
-  const listContentHeight = rankedSongs.length * ROW_HEIGHT
+  const listContentHeight = visibleRankedSongs.length * ROW_HEIGHT
   const lastRowBottom = FIRST_ROW_TOP + listHeight
   const canvasHeight = Math.max(844, lastRowBottom + ROW_BOTTOM_PADDING)
   const showFooterChevron = !loading && rankedSongs.length > 0 && rankedSongs.length <= 4
@@ -186,14 +202,14 @@ export default function MobileVotePage() {
               <a href="?mode=mobile" className="mv-empty-link">去投稿歌曲 →</a>
             </div>
           ) : (
-            <div className="mv-list" style={{ top: FIRST_ROW_TOP, height: listHeight }}>
+            <div className="mv-list" style={{ top: FIRST_ROW_TOP, height: listHeight }} onScroll={handleListScroll}>
               <div className="mv-list-inner" style={{ height: listContentHeight }}>
-                {rankedSongs.map((song, i) => {
+                {visibleRankedSongs.map((song, i) => {
                   const isVoting = votingId === song.id
                   const isVoted = votedId === song.id
                   const top = i * ROW_HEIGHT
                   const bubbleUrl = BUBBLE_URLS[i % BUBBLE_URLS.length]
-                  const isLast = i === rankedSongs.length - 1
+                  const isLast = i === visibleRankedSongs.length - 1 && !hasMoreSongs
                   const showError = voteError?.songId === song.id
 
                   return (

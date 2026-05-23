@@ -15,6 +15,19 @@ class Settings(BaseSettings):
     cors_origin_regex: str | None = None
     vote_limit_per_ip: int = 3
     websocket_ping_message: str = "ping"
+    minimax_api_key: str | None = None
+    minimax_music_generation_url: str = "https://api.minimaxi.com/v1/music_generation"
+    minimax_request_timeout_seconds: int = Field(default=180, gt=0)
+    music_download_timeout_seconds: int = Field(default=120, gt=0)
+    minio_endpoint: str = "111.230.105.54:9000"
+    minio_access_key: str | None = None
+    minio_secret_key: str | None = None
+    minio_bucket: str = "music"
+    minio_secure: bool = False
+    generated_music_ttl_days: int = Field(default=7, gt=0)
+    generated_music_cleanup_enabled: bool = True
+    generated_music_cleanup_interval_seconds: int = Field(default=86400, gt=0)
+    generated_music_cleanup_batch_size: int = Field(default=200, gt=0)
 
     model_config = SettingsConfigDict(
         env_file=".env",

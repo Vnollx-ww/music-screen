@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect,
 from sqlalchemy.orm import Session
 
 from .database import get_db
+from .music_service import build_generated_music_out, generate_music, get_generated_music
 from .realtime import manager
-from .schemas import CreateSongRequest, SongEvent, SongOut
+from .schemas import CreateSongRequest, GeneratedMusicOut, GenerateMusicRequest, SongEvent, SongOut
 from .services import create_song, get_client_ip, list_songs, vote_song
 
 router = APIRouter()
@@ -35,6 +36,16 @@ async def post_song_vote(song_id: str, request: Request, db: Session = Depends(g
     event = SongEvent(type="update", song=song_out)
     await manager.broadcast_json(event.model_dump(mode="json"))
     return song_out
+
+
+@router.post("/music/generate", response_model=GeneratedMusicOut, status_code=status.HTTP_201_CREATED)
+def post_music_generate(payload: GenerateMusicRequest, db: Session = Depends(get_db)) -> GeneratedMusicOut:
+    return build_generated_music_out(generate_music(db, payload))
+
+
+@router.get("/music/{music_id}", response_model=GeneratedMusicOut)
+def get_music(music_id: str, db: Session = Depends(get_db)) -> GeneratedMusicOut:
+    return build_generated_music_out(get_generated_music(db, music_id))
 
 
 @router.websocket("/ws")

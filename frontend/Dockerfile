@@ -8,6 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
+COPY .env.production ./
 COPY . .
 RUN npm run build:prod
 

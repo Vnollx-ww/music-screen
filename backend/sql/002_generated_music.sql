@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS generated_music (
   lyrics TEXT NULL,
   source_audio_url TEXT NOT NULL,
   minio_bucket VARCHAR(255) NOT NULL,
-  minio_object_name VARCHAR(1024) NOT NULL,
+  minio_object_name VARCHAR(500) NOT NULL,
   content_type VARCHAR(128) NULL,
   file_size_bytes BIGINT UNSIGNED NULL,
   status VARCHAR(32) NOT NULL DEFAULT 'ready',

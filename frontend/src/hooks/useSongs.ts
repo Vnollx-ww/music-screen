@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getWebSocketUrl } from '../lib/api'
 import { fetchSongs, normalizeSongRow } from '../lib/songs'
-import { supabase } from '../lib/supabase'
 import type { Song, SongRow, RealtimeStatus } from '../types/song'
+
+type SongRealtimeEvent = {
+  type: 'insert' | 'update' | 'delete'
+  song?: SongRow | null
+  song_id?: string | null
+}
 
 export function useSongs(onNewSong?: (s: Song) => void) {
   const [songs, setSongs] = useState<Song[]>([])
@@ -33,23 +39,66 @@ export function useSongs(onNewSong?: (s: Song) => void) {
 
   useEffect(() => {
     void refresh()
-    const channel = supabase
-      .channel('songs-realtime')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'songs' }, (payload) => {
-        const s = normalizeSongRow(payload.new as SongRow)
-        setSongs((prev) => [s, ...prev.filter((x) => x.id !== s.id)])
-        cbRef.current?.(s)
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'songs' }, (payload) => {
-        const s = normalizeSongRow(payload.new as SongRow)
-        setSongs((prev) => prev.map((x) => (x.id === s.id ? s : x)))
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'songs' }, (payload) => {
-        const old = payload.old as Partial<SongRow>
-        if (old.id) setSongs((prev) => prev.filter((x) => x.id !== old.id))
-      })
-      .subscribe((s) => setStatus(s as RealtimeStatus))
-    return () => { void supabase.removeChannel(channel) }
+
+    let stopped = false
+    let socket: WebSocket | null = null
+    let reconnectTimer: ReturnType<typeof window.setTimeout> | null = null
+
+    const connect = () => {
+      setStatus('CONNECTING')
+      socket = new WebSocket(getWebSocketUrl())
+
+      socket.onopen = () => {
+        setStatus('SUBSCRIBED')
+      }
+
+      socket.onmessage = (event) => {
+        let payload: SongRealtimeEvent
+        try {
+          payload = JSON.parse(event.data) as SongRealtimeEvent
+        } catch {
+          return
+        }
+
+        if (payload.type === 'delete') {
+          if (payload.song_id) setSongs((prev) => prev.filter((x) => x.id !== payload.song_id))
+          return
+        }
+
+        if (!payload.song) return
+        const song = normalizeSongRow(payload.song)
+
+        if (payload.type === 'insert') {
+          setSongs((prev) => [song, ...prev.filter((x) => x.id !== song.id)])
+          cbRef.current?.(song)
+          return
+        }
+
+        setSongs((prev) => {
+          const exists = prev.some((x) => x.id === song.id)
+          if (exists) return prev.map((x) => (x.id === song.id ? song : x))
+          return [song, ...prev]
+        })
+      }
+
+      socket.onerror = () => {
+        setStatus('CHANNEL_ERROR')
+      }
+
+      socket.onclose = () => {
+        if (stopped) return
+        setStatus('CLOSED')
+        reconnectTimer = window.setTimeout(connect, 2000)
+      }
+    }
+
+    connect()
+
+    return () => {
+      stopped = true
+      if (reconnectTimer) window.clearTimeout(reconnectTimer)
+      socket?.close()
+    }
   }, [refresh])
 
   return { songs, loading, error, status, refresh, upsertSong }

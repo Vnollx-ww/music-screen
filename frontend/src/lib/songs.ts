@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { apiRequest } from './api'
 import { normalizeEra } from './eraConfig'
 import type { Song, SongRow, CreateSongInput } from '../types/song'
 
@@ -20,32 +20,25 @@ export function calcScore(s: Song): number {
 }
 
 export async function fetchSongs(): Promise<Song[]> {
-  const { data, error } = await supabase.from('songs').select('*').order('created_at', { ascending: false })
-  if (error) throw error
-  return (data ?? []).map((r) => normalizeSongRow(r as unknown as SongRow))
+  const data = await apiRequest<SongRow[]>('/songs')
+  return data.map((r) => normalizeSongRow(r))
 }
 
 export async function insertSong(input: CreateSongInput): Promise<Song> {
-  const { data, error } = await supabase
-    .from('songs')
-    .insert({
+  const data = await apiRequest<SongRow>('/songs', {
+    method: 'POST',
+    body: JSON.stringify({
       title: input.title.trim(),
       artist: input.artist?.trim() || '匿名投稿',
       era: input.era,
-      votes: 1,
-      play_count: 0,
-      recommend_count: 1,
-    })
-    .select('*')
-    .single()
-  if (error) throw error
-  return normalizeSongRow(data as unknown as SongRow)
+    }),
+  })
+  return normalizeSongRow(data)
 }
 
 export async function voteSong(songId: string): Promise<Song> {
-  const { data, error } = await supabase.rpc('vote_song', { song_id: songId })
-
-  if (error) throw error
-  if (!data) throw new Error('投票失败：vote_song 没有返回歌曲数据')
-  return normalizeSongRow(data as unknown as SongRow)
+  const data = await apiRequest<SongRow>(`/songs/${encodeURIComponent(songId)}/vote`, {
+    method: 'POST',
+  })
+  return normalizeSongRow(data)
 }

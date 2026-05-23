@@ -39,23 +39,14 @@ type VoteError = {
 function getVoteErrorMessage(err: unknown): string {
   if (err && typeof err === 'object') {
     const record = err as Record<string, unknown>
-    const parts = [record.message, record.details, record.hint].filter(
+    const parts = [record.message, record.detail].filter(
       (value): value is string => typeof value === 'string' && value.trim().length > 0,
     )
 
-    const code = typeof record.code === 'string' ? record.code.trim() : ''
     const message = typeof record.message === 'string' ? record.message.trim() : ''
 
-    if (code === 'P0001' && message.includes('投票次数已达上限')) {
+    if (message.includes('投票次数已达上限')) {
       return '当前 IP 投票次数已达上限（每个 IP 最多 3 票）'
-    }
-
-    if (code === 'PGRST202' || code === '42883') {
-      parts.push('请先在 Supabase SQL Editor 执行 supabase/migrations/20260522214700_limit_vote_by_ip.sql')
-    }
-
-    if (code) {
-      parts.push(`错误码 ${code}`)
     }
 
     if (parts.length > 0) return parts.join('；')

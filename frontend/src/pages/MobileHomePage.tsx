@@ -29,6 +29,7 @@ export default function MobileHomePage() {
     <main className="mh-page">
       <div className="mh-scaler" style={{ height: 844 * scale }}>
         <div className="mh-canvas" style={{ transform: `scale(${scale})` }}>
+          <img src="/dashboard-background.png" className="mh-dashboard-bg" alt="" aria-hidden />
           <InlineSvg html={floatingHomeBackgroundSvg} className="mh-background mobile-floating-svg" />
           <img src={homeBubblesUrl} className="mh-bubbles" alt="" aria-hidden />
 

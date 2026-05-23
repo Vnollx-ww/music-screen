@@ -17,6 +17,7 @@ class Settings(BaseSettings):
             "http://127.0.0.1:5173",
         ]
     )
+    cors_origin_regex: str | None = r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+):\d+$"
     vote_limit_per_ip: int = 3
     websocket_ping_message: str = "ping"
 

@@ -1,5 +1,5 @@
 # Build:
-# docker build --no-cache --build-arg VITE_API_BASE_URL="http://111.230.105.54:8000/api" --build-arg VITE_WS_URL="ws://111.230.105.54:8000/api/ws" -t music-screen-frontend .
+# docker build --no-cache --build-arg VITE_API_BASE_URL="http://111.230.105.54:6060/api" --build-arg VITE_WS_URL="ws://111.230.105.54:6060/api/ws" -t music-screen-frontend .
 
 FROM node:22-alpine AS builder
 

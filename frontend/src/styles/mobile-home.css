@@ -20,12 +20,14 @@
 
 .mh-canvas {
   position: relative;
+  isolation: isolate;
   width: 390px;
   height: 844px;
   flex-shrink: 0;
   transform-origin: top center;
 }
 
+.mh-dashboard-bg,
 .mh-background,
 .mh-bubbles {
   position: absolute;
@@ -36,12 +38,17 @@
   user-select: none;
 }
 
-.mh-background {
+.mh-dashboard-bg {
   z-index: 0;
+  object-fit: cover;
+}
+
+.mh-background {
+  z-index: 1;
 }
 
 .mh-bubbles {
-  z-index: 1;
+  z-index: 2;
 }
 
 .mh-title {
@@ -49,7 +56,7 @@
   top: 154px;
   left: 0;
   right: 0;
-  z-index: 2;
+  z-index: 3;
   margin: 0;
   color: rgba(255, 255, 255, 0.92);
   font-size: 22px;
@@ -63,7 +70,7 @@
 .mh-action {
   position: absolute;
   left: 51px;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   width: 299px;
   height: 103px;

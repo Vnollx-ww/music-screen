@@ -8,7 +8,7 @@
 # docker push vnollx/music-screen-backend:1.0
 #
 # Run example:
-# docker run --rm -p 8000:8000 --env-file .env music-screen-backend
+# docker run --rm -p 6060:6060 --env-file .env music-screen-backend
 
 FROM python:3.12-slim AS runner
 
@@ -22,9 +22,10 @@ RUN python -m pip install --no-cache-dir --upgrade pip
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY app.py ./
 COPY app ./app
 COPY sql ./sql
 
-EXPOSE 8000
+EXPOSE 6060
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "app.py"]

@@ -22,6 +22,10 @@ function decorateFirstBubbleGroup(svg: string) {
   ))
 }
 
+function removeHomeSolidBackground(svg: string) {
+  return svg.replace('<rect width="390" height="844" fill="#14161F"/>', '')
+}
+
 function decorateSingleBubble(svg: string, circle: string, extraClassName = '') {
   const className = `mobile-svg-bubble mobile-svg-bubble-single ${extraClassName}`.trim()
   return svg.replace(circle, `<g class="${className}">${circle}</g>`)
@@ -60,7 +64,7 @@ function wrapRange(svg: string, start: string, end: string, className: string) {
 
 export function decorateMobileHomeBackgroundSvg(svg: string) {
   return decorateSingleBubble(
-    decorateFirstBubbleGroup(svg),
+    decorateFirstBubbleGroup(removeHomeSolidBackground(svg)),
     HOME_BACKGROUND_SINGLE_BUBBLE,
     'mobile-svg-bubble-home-single',
   )

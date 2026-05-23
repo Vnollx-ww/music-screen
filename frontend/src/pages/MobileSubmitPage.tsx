@@ -121,6 +121,7 @@ export default function MobileSubmitPage() {
   const selectedEraLabel = era ? eraConfig[era].label : '选择年代'
   const feedback = errMsg
   const isUploadLocked = stage !== 'form'
+  const isBackDisabled = stage === 'animating' || stage === 'submitting'
   const isUploadFlow = stage === 'animating' || stage === 'submitting' || stage === 'success'
   const isSubmitActive = isUploadFlow
   const submitLabel = stage === 'animating' || stage === 'submitting' ? '推榜中' : '上传歌曲'
@@ -139,7 +140,7 @@ export default function MobileSubmitPage() {
             type="button"
             className="ms-back"
             aria-label="返回主页"
-            disabled={isUploadLocked}
+            disabled={isBackDisabled}
             onClick={() => window.location.assign('?mode=home')}
           />
 
@@ -155,7 +156,7 @@ export default function MobileSubmitPage() {
                 {stage === 'success' ? '已推榜' : '正在推榜'}
               </span>
               <span className="ms-upload-status-subtitle">
-                {stage === 'success' ? '歌曲正在同步到现场大屏' : '请稍候，正在写入榜单'}
+                {stage === 'success' ? '已同步到现场大屏' : '请稍候，正在写入榜单'}
               </span>
             </div>
           )}

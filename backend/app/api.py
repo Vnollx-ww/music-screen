@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Request, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .music_service import build_generated_music_out, generate_music, get_generated_music, list_generated_music, preprocess_music_cover
+from .music_service import build_generated_music_out, generate_music, get_generated_music, list_generated_music, preprocess_music_cover, upload_source_audio
 from .realtime import manager
 from .schemas import CreateSongRequest, GeneratedMusicOut, GenerateMusicRequest, MusicCoverPreprocessOut, MusicCoverPreprocessRequest, SongEvent, SongOut
 from .services import create_song, get_client_ip, list_songs, vote_song
@@ -46,6 +46,16 @@ def post_music_generate(payload: GenerateMusicRequest, db: Session = Depends(get
 @router.post("/music/cover-preprocess", response_model=MusicCoverPreprocessOut)
 def post_music_cover_preprocess(payload: MusicCoverPreprocessRequest) -> MusicCoverPreprocessOut:
     return preprocess_music_cover(payload)
+
+
+@router.post("/music/source-upload", response_model=GeneratedMusicOut, status_code=status.HTTP_201_CREATED)
+def post_music_source_upload(
+    title: str = Form(...),
+    artist: str | None = Form(default=None),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> GeneratedMusicOut:
+    return build_generated_music_out(upload_source_audio(db, file, title, artist))
 
 
 @router.get("/music", response_model=list[GeneratedMusicOut])

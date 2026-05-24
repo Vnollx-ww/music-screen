@@ -56,3 +56,14 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   if (!response.ok) throw new Error(await getErrorMessage(response))
   return response.json() as Promise<T>
 }
+
+export async function apiFormRequest<T>(path: string, body: FormData, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...init,
+    method: init?.method ?? 'POST',
+    body,
+  })
+
+  if (!response.ok) throw new Error(await getErrorMessage(response))
+  return response.json() as Promise<T>
+}

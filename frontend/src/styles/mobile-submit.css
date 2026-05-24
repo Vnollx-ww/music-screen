@@ -157,6 +157,48 @@
   text-shadow: 0 0 14px rgba(233, 199, 255, 0.32);
 }
 
+.ms-source-audio-control {
+  position: absolute;
+  top: 514px;
+  left: 36px;
+  z-index: 7;
+  display: flex;
+  width: 319px;
+  height: 26px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(233, 199, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(20, 22, 31, 0.36);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ms-source-audio-control input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ms-source-audio-control span {
+  max-width: 286px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ms-source-audio-control:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .ms-era-label {
   position: absolute;
   top: 543px;

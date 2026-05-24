@@ -209,13 +209,13 @@ export default function MobileVotePage() {
             <img src={backArrowUrl} alt="" aria-hidden />
           </button>
 
-          <h1 className="mv-title">代际歌曲榜单</h1>
+          <h1 className="mv-title">歌曲榜单</h1>
 
           {/* 排行面板背景（含模糊与阴影） */}
           <img src={panelBgUrl} className="mv-panel-bg" alt="" aria-hidden />
 
           {/* 面板标题区 */}
-          <h1 className="mv-panel-title">代际歌曲榜单</h1>
+          <h1 className="mv-panel-title">歌曲榜单</h1>
           <p className="mv-panel-subtitle">
             信义坊社区大屏
           </p>

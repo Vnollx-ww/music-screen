@@ -1,11 +1,12 @@
 import logging
+from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
 import requests
-from fastapi import HTTPException, status
+from fastapi import HTTPException, UploadFile, status
 from minio import Minio
 from minio.error import S3Error
 from sqlalchemy import select
@@ -78,6 +79,73 @@ def preprocess_music_cover(payload: MusicCoverPreprocessRequest) -> MusicCoverPr
         audio_duration=float(audio_duration) if isinstance(audio_duration, (int, float)) else None,
         trace_id=data.get("trace_id") if isinstance(data.get("trace_id"), str) else None,
     )
+
+
+def upload_source_audio(db: Session, file: UploadFile, title: str, artist: str | None = None) -> GeneratedMusic:
+    settings = get_settings()
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in AUDIO_EXTENSIONS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="仅支持 mp3、wav、m4a、flac、aac、ogg 音频文件")
+
+    try:
+        file.file.seek(0, 2)
+        file_size_bytes = file.file.tell()
+        file.file.seek(0)
+    except OSError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="读取上传音频失败") from exc
+
+    if file_size_bytes <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="上传音频不能为空")
+
+    client = _get_minio_client(settings)
+    _ensure_minio_bucket(client, settings.minio_bucket)
+    record_id = str(uuid4())
+    now = datetime.now()
+    object_name = f"uploaded/{now:%Y/%m/%d}/{record_id}{suffix}"
+    content_type = file.content_type or _guess_content_type(object_name)
+
+    try:
+        client.put_object(
+            settings.minio_bucket,
+            object_name,
+            file.file,
+            file_size_bytes,
+            content_type=content_type,
+        )
+        source_audio_url = client.presigned_get_object(
+            settings.minio_bucket,
+            object_name,
+            expires=timedelta(seconds=MAX_PRESIGNED_EXPIRY_SECONDS),
+        )
+    except S3Error as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"上传音频到 MinIO 失败：{exc.code}") from exc
+
+    prompt = f"{title.strip()} · {(artist or '匿名投稿').strip()}".strip(" ·")
+    record = GeneratedMusic(
+        id=record_id,
+        model="uploaded-source",
+        prompt=prompt or "用户上传音频源文件",
+        lyrics=None,
+        source_audio_url=source_audio_url,
+        minio_bucket=settings.minio_bucket,
+        minio_object_name=object_name,
+        content_type=content_type,
+        file_size_bytes=file_size_bytes,
+        status="ready",
+        raw_response={"source": "mobile-submit", "filename": file.filename},
+        created_at=now,
+        expires_at=now + timedelta(days=3650),
+    )
+
+    try:
+        db.add(record)
+        db.commit()
+        db.refresh(record)
+        return record
+    except Exception:
+        db.rollback()
+        _remove_minio_object_safely(settings, settings.minio_bucket, object_name)
+        raise
 
 
 def get_generated_music(db: Session, music_id: str) -> GeneratedMusic:

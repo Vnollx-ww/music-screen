@@ -1,4 +1,4 @@
-import { apiRequest } from './api'
+import { apiFormRequest, apiRequest } from './api'
 
 export type GeneratedMusic = {
   id: string
@@ -73,4 +73,12 @@ export async function preprocessMusicCover(input: MusicCoverPreprocessInput): Pr
       audio_base64: input.audio_base64 || undefined,
     }),
   })
+}
+
+export async function uploadSourceAudio(file: File, title: string, artist?: string): Promise<GeneratedMusic> {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('title', title.trim())
+  if (artist?.trim()) formData.append('artist', artist.trim())
+  return apiFormRequest<GeneratedMusic>('/music/source-upload', formData)
 }

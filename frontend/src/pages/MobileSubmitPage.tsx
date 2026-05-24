@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import EraIcon from '../components/EraIcon'
 import InlineSvg from '../components/InlineSvg'
 import SubmitTopRecord from '../components/SubmitTopRecord'
 import { useFitToWidth } from '../hooks/useFitToWidth'
+import { uploadSourceAudio } from '../lib/music'
 import { insertSong } from '../lib/songs'
 import { decorateMobileSubmitBaseSvg } from '../lib/mobileSvgFloat'
 import type { Era } from '../types/song'
@@ -34,10 +35,12 @@ export default function MobileSubmitPage() {
   const [title, setTitle] = useState('')
   const [artist, setArtist] = useState('')
   const [era, setEra] = useState<Era | null>(null)
+  const [sourceAudioFile, setSourceAudioFile] = useState<File | null>(null)
   const [stage, setStage] = useState<Stage>('form')
   const [errMsg, setErrMsg] = useState('')
   const submitTimerRef = useRef<number | null>(null)
   const submitInProgressRef = useRef(false)
+  const sourceAudioInputRef = useRef<HTMLInputElement | null>(null)
   const scale = useFitToWidth(390)
 
   useEffect(() => {
@@ -75,10 +78,15 @@ export default function MobileSubmitPage() {
       submitTimerRef.current = null
       setStage('submitting')
 
-      void insertSong({ title: songTitle, artist: songArtist, era: songEra })
+      void (async () => {
+        const uploadedMusic = sourceAudioFile ? await uploadSourceAudio(sourceAudioFile, songTitle, songArtist) : null
+        return insertSong({ title: songTitle, artist: songArtist, era: songEra, music_id: uploadedMusic?.id })
+      })()
         .then(() => {
           setTitle('')
           setArtist('')
+          setSourceAudioFile(null)
+          if (sourceAudioInputRef.current) sourceAudioInputRef.current.value = ''
           setStage('success')
         })
         .catch((err: unknown) => {
@@ -103,7 +111,14 @@ export default function MobileSubmitPage() {
     if (errMsg) setErrMsg('')
   }
 
+  const handleSourceAudioChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSourceAudioFile(event.target.files?.[0] ?? null)
+    if (stage === 'success') setStage('form')
+    if (errMsg) setErrMsg('')
+  }
+
   const selectedEraLabel = title.trim() || '请输入歌曲名'
+  const sourceAudioLabel = sourceAudioFile ? sourceAudioFile.name : '上传音频源文件（可选）'
   const feedback = errMsg
   const isUploadLocked = stage !== 'form'
   const isBackDisabled = stage === 'animating' || stage === 'submitting'
@@ -172,6 +187,18 @@ export default function MobileSubmitPage() {
               autoComplete="off"
               disabled={isUploadLocked}
             />
+
+            <label className="ms-source-audio-control" htmlFor="mobile-submit-source-audio">
+              <input
+                ref={sourceAudioInputRef}
+                id="mobile-submit-source-audio"
+                type="file"
+                accept=".mp3,.wav,.m4a,.flac,.aac,.ogg,audio/*"
+                onChange={handleSourceAudioChange}
+                disabled={isUploadLocked}
+              />
+              <span>{sourceAudioLabel}</span>
+            </label>
 
             <div className="ms-era-label">选择年代</div>
 

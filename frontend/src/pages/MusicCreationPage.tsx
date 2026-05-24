@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, SVGProps } from 'react'
-import { fetchGeneratedMusic, generateMusic } from '../lib/music'
+import { fetchGeneratedMusic, generateMusic, preprocessMusicCover } from '../lib/music'
 import type { GeneratedMusic } from '../lib/music'
 import '../styles/music-creation.css'
 
@@ -30,6 +30,7 @@ interface WorkItem extends GeneratedMusic {
   title: string
   cover: string
   durationLabel: string
+  isPending?: boolean
 }
 
 const styleTagGroups = [
@@ -49,29 +50,13 @@ const musicModelOptions = [
     value: 'music-2.6',
     label: 'Music-2.6',
     isNew: true,
-    description: '升级音乐模型，全新支持翻唱功能，超快生成速度，乐器表现力极强',
-    image: 'https://cdn.hailuoai.com/hailuo-video-web/public_assets/5f344dc6-9691-423a-a05f-19388125d572.png',
+    description: '文本生成音乐推荐模型',
   },
   {
-    value: 'music-2.5+',
-    label: 'Music-2.5+',
+    value: 'music-cover',
+    label: 'Music Cover',
     isNew: true,
-    description: '下一代音乐生成模型，开启全场景、风格的全能纯音乐创作。',
-    image: 'https://cdn.hailuoai.com/hailuo-video-web/public_assets/13f08d9f-4db4-4879-80b6-ba269adc69a1.png',
-  },
-  {
-    value: 'music-2.5',
-    label: 'Music-2.5',
-    isNew: false,
-    description: '新一代音乐生成模型，对人声表现、编曲与混音、结构精度及声音设计进行了优化，能够生成更自然、更稳定更具专业质感的音乐',
-    image: 'https://cdn.hailuoai.com/hailuo-video-web/public_assets/2.5.png',
-  },
-  {
-    value: 'music-2.0',
-    label: 'Music-2.0',
-    isNew: false,
-    description: '增强版音乐生成模型，加强音乐性和乐器表现。支持生成音乐时长：最长5分钟',
-    image: 'https://cdn.hailuoai.com/hailuo-video-web/public_assets/2.0.png',
+    description: '基于参考音频生成翻唱版本，需要上传参考音乐',
   },
 ] as const
 
@@ -280,15 +265,54 @@ function toWorkItem(record: GeneratedMusic, index: number, title?: string): Work
   }
 }
 
+function createPendingWorkItem(id: string, model: MusicModelValue, prompt: string, lyrics: string | undefined, title: string): WorkItem {
+  const now = new Date().toISOString()
+  return {
+    id,
+    model,
+    prompt,
+    lyrics: lyrics ?? null,
+    source_audio_url: '',
+    music_url: '',
+    minio_bucket: '',
+    minio_object_name: '',
+    status: 'generating',
+    expires_at: now,
+    created_at: now,
+    title,
+    cover: '',
+    durationLabel: '生成中',
+    isPending: true,
+  }
+}
+
+function isCoverModel(model: string): boolean {
+  return model === 'music-cover' || model === 'music-cover-free'
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result ?? '')
+      resolve(result.includes(',') ? result.split(',')[1] : result)
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('参考音频读取失败'))
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function MusicCreationPage() {
-  const [lyrics, setLyrics] = useState('我爱你哦')
-  const [stylePrompt, setStylePrompt] = useState('唐')
+  const [lyrics, setLyrics] = useState('')
+  const [stylePrompt, setStylePrompt] = useState('')
   const [title, setTitle] = useState('')
   const [selectedModel, setSelectedModel] = useState<MusicModelValue>('music-2.6')
   const [isModelOpen, setIsModelOpen] = useState(false)
   const [count, setCount] = useState(2)
   const [instrumental, setInstrumental] = useState(false)
   const [referenceFile, setReferenceFile] = useState<File | null>(null)
+  const [coverFeatureId, setCoverFeatureId] = useState('')
+  const [preprocessingCover, setPreprocessingCover] = useState(false)
   const [works, setWorks] = useState<WorkItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loadingWorks, setLoadingWorks] = useState(true)
@@ -332,6 +356,7 @@ export default function MusicCreationPage() {
     () => musicModelOptions.find((option) => option.value === selectedModel) ?? musicModelOptions[0],
     [selectedModel],
   )
+  const selectedModelIsCover = isCoverModel(selectedModel)
   const styleTags = styleTagGroups[styleTagGroupIndex] ?? styleTagGroups[0]
 
   useEffect(() => {
@@ -351,9 +376,33 @@ export default function MusicCreationPage() {
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [isModelOpen])
 
+  useEffect(() => {
+    if (selectedModelIsCover) return
+    setReferenceFile(null)
+    setCoverFeatureId('')
+    setPreprocessingCover(false)
+  }, [selectedModelIsCover])
+
   const handleReferenceChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null
     setReferenceFile(file)
+    setCoverFeatureId('')
+    if (!file || !selectedModelIsCover) return
+
+    setPreprocessingCover(true)
+    setError('')
+    void fileToBase64(file)
+      .then((audioBase64) => preprocessMusicCover({ audio_base64: audioBase64 }))
+      .then((result) => {
+        setCoverFeatureId(result.cover_feature_id)
+        if (result.formatted_lyrics) setLyrics(result.formatted_lyrics.slice(0, 3500))
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : '翻唱前处理失败')
+      })
+      .finally(() => {
+        setPreprocessingCover(false)
+      })
   }
 
   const appendTag = (tag: string) => {
@@ -389,24 +438,47 @@ export default function MusicCreationPage() {
     const normalizedLyrics = lyrics.trim()
     const normalizedTitle = title.trim() || normalizedLyrics.split('\n').find(Boolean)?.slice(0, 16) || prompt.slice(0, 16)
 
-    if (!instrumental && !normalizedLyrics) {
+    if (!selectedModelIsCover && !instrumental && !normalizedLyrics) {
       setError('请输入歌词，或开启纯音乐')
+      return
+    }
+
+    if (selectedModelIsCover && !referenceFile) {
+      setError('翻唱模型需要先上传参考音乐')
+      return
+    }
+
+    if (selectedModelIsCover && !coverFeatureId) {
+      setError(preprocessingCover ? '参考音乐正在预处理中，请稍候' : '请先完成参考音乐预处理')
+      return
+    }
+
+    if (selectedModelIsCover && prompt.length < 10) {
+      setError('翻唱模型的风格描述至少需要 10 个字符')
       return
     }
 
     setGenerating(true)
     setError('')
-    void generateMusic({
-      model: selectedModel,
-      prompt,
-      lyrics: instrumental ? undefined : normalizedLyrics,
-      is_instrumental: instrumental,
-    })
+    const pendingId = `pending-${Date.now()}`
+    const pendingLyrics = selectedModelIsCover && normalizedLyrics.length < 10 ? undefined : normalizedLyrics
+    const pendingItem = createPendingWorkItem(pendingId, selectedModel, prompt, pendingLyrics, normalizedTitle || '生成中的作品')
+    setWorks((prev) => [pendingItem, ...prev])
+    void (async () => {
+      return generateMusic({
+        model: selectedModel,
+        prompt,
+        lyrics: instrumental || !pendingLyrics ? undefined : pendingLyrics,
+        is_instrumental: selectedModelIsCover ? undefined : instrumental,
+        cover_feature_id: selectedModelIsCover ? coverFeatureId : undefined,
+      })
+    })()
       .then((record) => {
         const item = toWorkItem(record, works.length, normalizedTitle)
-        setWorks((prev) => [item, ...prev])
+        setWorks((prev) => prev.map((work) => (work.id === pendingId ? item : work)))
       })
       .catch((err: unknown) => {
+        setWorks((prev) => prev.filter((work) => work.id !== pendingId))
         setError(err instanceof Error ? err.message : '生成失败')
       })
       .finally(() => {
@@ -433,6 +505,27 @@ export default function MusicCreationPage() {
     const nextTime = Number(event.target.value)
     setCurrentTime(nextTime)
     if (audioRef.current) audioRef.current.currentTime = nextTime
+  }
+
+  const handleDownload = async (url: string, filename: string) => {
+    if (!url) {
+      setError('音乐文件尚未生成，无法下载')
+      return
+    }
+    try {
+      const response = await fetch(url)
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = `${filename || '未命名作品'}.mp3`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    } catch {
+      window.open(url, '_blank')
+    }
   }
 
   return (
@@ -478,9 +571,6 @@ export default function MusicCreationPage() {
                                 setIsModelOpen(false)
                               }}
                             >
-                              <span className="mc-model-option-cover">
-                                <img src={option.image} alt={`model-${option.value}`} />
-                              </span>
                               <span className="mc-model-option-content">
                                 <span className="mc-model-option-title">
                                   <span>{option.label}</span>
@@ -509,16 +599,18 @@ export default function MusicCreationPage() {
 
               <form className="mc-input-area" onSubmit={handleGenerate}>
                 <div className="mc-form-scroll">
-                  <section className="mc-upload-card">
-                    <input id="music-reference-file" type="file" accept=".mp3,.wav" onChange={handleReferenceChange} />
-                    <label htmlFor="music-reference-file">
-                      <span className="mc-upload-icon"><Icon name="upload" /></span>
-                      <span className="mc-upload-copy">
-                        <b>参考音乐（可选）</b>
-                        <small>{referenceFile ? referenceFile.name : '点击或拖拽上传，生成专属翻唱（上传即同意服务条款）'}</small>
-                      </span>
-                    </label>
-                  </section>
+                  {selectedModelIsCover && (
+                    <section className="mc-upload-card">
+                      <input id="music-reference-file" type="file" accept=".mp3,.wav,.flac,.m4a,.aac,.ogg" onChange={handleReferenceChange} />
+                      <label htmlFor="music-reference-file">
+                        <span className="mc-upload-icon"><Icon name="upload" /></span>
+                        <span className="mc-upload-copy">
+                          <b>参考音乐</b>
+                          <small>{referenceFile ? `${referenceFile.name}${preprocessingCover ? ' · 预处理中...' : coverFeatureId ? ' · 预处理完成' : ''}` : '上传参考音频后自动预处理并提取歌词'}</small>
+                        </span>
+                      </label>
+                    </section>
+                  )}
 
                   <section className="mc-text-card mc-flex-card">
                     <div className="mc-card-title-row">
@@ -626,22 +718,34 @@ export default function MusicCreationPage() {
                   {!loadingWorks && works.map((work) => {
                     const selected = selectedWork?.id === work.id
                     return (
-                      <button className={`mc-work-item${selected ? ' selected' : ''}`} type="button" key={work.id} onClick={() => setSelectedId(work.id)}>
+                      <button
+                        className={`mc-work-item${selected ? ' selected' : ''}${work.isPending ? ' pending' : ''}`}
+                        type="button"
+                        key={work.id}
+                        onClick={() => {
+                          if (!work.isPending) setSelectedId(work.id)
+                        }}
+                        disabled={work.isPending}
+                      >
                         {selected && <span className="mc-work-dot" />}
                         <span className="mc-cover-wrap">
-                          <img src={work.cover} alt="voice icon" />
-                          <span className="mc-cover-play"><Icon name="play" /></span>
+                          {work.isPending ? <span className="mc-cover-loading"><Icon name="wave" /></span> : <img src={work.cover} alt="voice icon" />}
+                          {!work.isPending && <span className="mc-cover-play"><Icon name="play" /></span>}
                           <small>{work.durationLabel}</small>
                         </span>
                         <span className="mc-work-meta">
                           <b>{work.title}</b>
-                          <small>{work.prompt}</small>
+                          <small>{work.isPending ? 'AI 正在生成音乐，请稍候...' : work.prompt}</small>
                         </span>
-                        <span className="mc-work-actions">
-                          <Icon name="shuffle" />
-                          <Icon name="download" />
-                          <Icon name="more" />
-                        </span>
+                        {!work.isPending && (
+                          <span className="mc-work-actions">
+                            <button type="button" onClick={(event) => { event.stopPropagation(); void handleDownload(work.music_url, work.title) }} aria-label="下载" style={{ display: 'flex', background: 'transparent', border: 'none', padding: 0, color: 'inherit' }}>
+                              <Icon name="download" />
+                            </button>
+                            <Icon name="shuffle" />
+                            <Icon name="more" />
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -687,7 +791,9 @@ export default function MusicCreationPage() {
               </div>
 
               <div className="mc-player-actions">
-                <Icon name="download" />
+                <button type="button" onClick={() => { if (selectedWork) void handleDownload(selectedWork.music_url, selectedWork.title) }} aria-label="下载" style={{ display: 'flex', background: 'transparent', border: 'none', padding: 0, color: 'inherit' }}>
+                  <Icon name="download" />
+                </button>
                 <Icon name="shuffle" />
               </div>
 

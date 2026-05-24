@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     websocket_ping_message: str = "ping"
     minimax_api_key: str | None = None
     minimax_music_generation_url: str = "https://api.minimaxi.com/v1/music_generation"
+    minimax_music_cover_preprocess_url: str = "https://api.minimaxi.com/v1/music_cover_preprocess"
     minimax_request_timeout_seconds: int = Field(default=180, gt=0)
     music_download_timeout_seconds: int = Field(default=120, gt=0)
     minio_endpoint: str = "111.230.105.54:9000"

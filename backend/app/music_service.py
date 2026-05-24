@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from .models import GeneratedMusic
-from .schemas import GeneratedMusicOut, GenerateMusicRequest
+from .schemas import GeneratedMusicOut, GenerateMusicRequest, MusicCoverPreprocessOut, MusicCoverPreprocessRequest
 from .settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,29 @@ def generate_music(db: Session, payload: GenerateMusicRequest) -> GeneratedMusic
         db.rollback()
         _remove_minio_object_safely(settings, settings.minio_bucket, object_name)
         raise
+
+
+def preprocess_music_cover(payload: MusicCoverPreprocessRequest) -> MusicCoverPreprocessOut:
+    settings = get_settings()
+    request_payload: dict[str, Any] = {
+        "model": payload.model,
+    }
+    if payload.audio_url is not None:
+        request_payload["audio_url"] = payload.audio_url
+    if payload.audio_base64 is not None:
+        request_payload["audio_base64"] = payload.audio_base64
+    data = _request_minimax(settings, settings.minimax_music_cover_preprocess_url, request_payload, "MiniMax 翻唱前处理接口")
+    cover_feature_id = data.get("cover_feature_id")
+    if not isinstance(cover_feature_id, str) or not cover_feature_id:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="MiniMax 翻唱前处理响应中没有 cover_feature_id")
+    audio_duration = data.get("audio_duration")
+    return MusicCoverPreprocessOut(
+        cover_feature_id=cover_feature_id,
+        formatted_lyrics=data.get("formatted_lyrics") if isinstance(data.get("formatted_lyrics"), str) else None,
+        structure_result=data.get("structure_result") if isinstance(data.get("structure_result"), str) else None,
+        audio_duration=float(audio_duration) if isinstance(audio_duration, (int, float)) else None,
+        trace_id=data.get("trace_id") if isinstance(data.get("trace_id"), str) else None,
+    )
 
 
 def get_generated_music(db: Session, music_id: str) -> GeneratedMusic:
@@ -134,6 +157,7 @@ def _build_minimax_payload(payload: GenerateMusicRequest) -> dict[str, Any]:
         "lyrics_optimizer": payload.lyrics_optimizer,
         "is_instrumental": payload.is_instrumental,
         "audio_url": payload.audio_url,
+        "audio_base64": payload.audio_base64,
         "cover_feature_id": payload.cover_feature_id,
     }
     for key, value in optional_fields.items():
@@ -143,12 +167,16 @@ def _build_minimax_payload(payload: GenerateMusicRequest) -> dict[str, Any]:
 
 
 def _request_minimax_music(settings: Settings, payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_minimax(settings, settings.minimax_music_generation_url, payload, "MiniMax 音乐生成接口")
+
+
+def _request_minimax(settings: Settings, url: str, payload: dict[str, Any], api_name: str) -> dict[str, Any]:
     if not settings.minimax_api_key:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="MiniMax API Key 未配置")
 
     try:
         response = requests.post(
-            settings.minimax_music_generation_url,
+            url,
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {settings.minimax_api_key}",
@@ -157,18 +185,18 @@ def _request_minimax_music(settings: Settings, payload: dict[str, Any]) -> dict[
             timeout=settings.minimax_request_timeout_seconds,
         )
     except requests.RequestException as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="调用 MiniMax 音乐生成接口失败") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"调用 {api_name} 失败") from exc
 
     if response.status_code >= 400:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"MiniMax 音乐生成接口返回错误：{response.status_code} {_trim_text(response.text)}",
+            detail=f"{api_name}返回错误：{response.status_code} {_trim_text(response.text)}",
         )
 
     try:
         data = response.json()
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="MiniMax 音乐生成接口返回了非 JSON 响应") from exc
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"{api_name}返回了非 JSON 响应") from exc
 
     _raise_for_minimax_error(data)
     return data

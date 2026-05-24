@@ -3,7 +3,6 @@ import type { FormEvent } from 'react'
 import EraIcon from '../components/EraIcon'
 import InlineSvg from '../components/InlineSvg'
 import SubmitTopRecord from '../components/SubmitTopRecord'
-import { eraConfig } from '../lib/eraConfig'
 import { insertSong } from '../lib/songs'
 import { decorateMobileSubmitBaseSvg } from '../lib/mobileSvgFloat'
 import type { Era } from '../types/song'
@@ -118,12 +117,12 @@ export default function MobileSubmitPage() {
     if (errMsg) setErrMsg('')
   }
 
-  const selectedEraLabel = era ? eraConfig[era].label : '选择年代'
+  const selectedEraLabel = title.trim() || '请输入歌曲名'
   const feedback = errMsg
   const isUploadLocked = stage !== 'form'
   const isBackDisabled = stage === 'animating' || stage === 'submitting'
   const isUploadFlow = stage === 'animating' || stage === 'submitting' || stage === 'success'
-  const isSubmitActive = isUploadFlow
+  const isSubmitActive = era !== null || isUploadFlow
   const submitLabel = stage === 'animating' || stage === 'submitting' ? '推榜中' : '上传歌曲'
   const canvasClassName =
     `ms-canvas${isUploadFlow ? ' ms-canvas-upload-flow' : ''}` +

@@ -336,11 +336,15 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  color: #E7C5FD;
+  color: #fff;
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 0.16em;
   text-shadow: 0 4px 14px rgba(0, 0, 0, 0.42);
+}
+
+.ms-submit-active .ms-submit-label {
+  color: #E7C5FD;
 }
 
 .ms-upload-status {

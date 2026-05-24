@@ -1,10 +1,9 @@
 import { memo } from 'react'
 import overlayAboveSvg from '../svg/circles-overlay/OverlayAbove.svg?raw'
 
-const OVERLAY_ABOVE_HTML = overlayAboveSvg.replace(
-  '<svg ',
-  '<svg preserveAspectRatio="none" ',
-)
+const OVERLAY_ABOVE_HTML = overlayAboveSvg
+  .replace('<svg ', '<svg preserveAspectRatio="xMidYMid meet" ')
+  .replace('viewBox="0 0 1843 1213"', 'viewBox="-10.446 17 1843 1213"')
 
 function OverlayAboveCircles() {
   return (

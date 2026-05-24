@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { eraConfig } from '../lib/eraConfig'
 import EraIcon from './EraIcon'
 import type { Song } from '../types/song'
@@ -159,7 +160,7 @@ function EmptyState({ variant, layout }: { variant: 'classic' | 'ai'; layout: Pa
   )
 }
 
-export default function RankingPanel({ title, songs, variant }: Props) {
+function RankingPanel({ title, songs, variant }: Props) {
   const layout = layouts[variant]
   const visibleSongs = songs.slice(0, 5)
 
@@ -193,3 +194,5 @@ export default function RankingPanel({ title, songs, variant }: Props) {
     </section>
   )
 }
+
+export default memo(RankingPanel)

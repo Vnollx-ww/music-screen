@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Era, Song } from '../types/song'
 
@@ -205,7 +205,7 @@ function createTargetPositions(songs: Song[]) {
   return positions
 }
 
-export default function EraSongBalls({ songs, activeSong }: Props) {
+function EraSongBalls({ songs, activeSong }: Props) {
   const [voteQueue, setVoteQueue] = useState<VoteQueueItem[]>([])
   const [activeVote, setActiveVote] = useState<VoteQueueItem | null>(null)
   const previousVotesRef = useRef<Map<string, number> | null>(null)
@@ -337,6 +337,8 @@ export default function EraSongBalls({ songs, activeSong }: Props) {
     </div>
   )
 }
+
+export default memo(EraSongBalls)
 
 function getFlyStyle(song: Song, target: Position): FlyStyle {
   const start = startPositions[song.era]

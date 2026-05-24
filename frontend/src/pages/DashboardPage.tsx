@@ -61,7 +61,7 @@ export default function DashboardPage() {
           src={overlayBelow}
           className="absolute inset-0 z-[2] h-full w-full pointer-events-none"
           alt=""
-          style={{ objectFit: 'fill' }}
+          style={{ objectFit: 'contain' }}
         />
         <OverlayAboveCircles />
         <svg

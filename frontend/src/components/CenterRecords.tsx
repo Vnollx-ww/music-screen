@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { CSSProperties } from 'react'
 import type { Era, Song } from '../types/song'
 
@@ -109,7 +110,7 @@ function getRecordItems(songs: Song[]) {
   })
 }
 
-export default function CenterRecords({ songs }: Props) {
+function CenterRecords({ songs }: Props) {
   const items = getRecordItems(songs.slice(0, 5)).sort((a, b) => a.slot.layer - b.slot.layer)
 
   return (
@@ -161,3 +162,5 @@ export default function CenterRecords({ songs }: Props) {
     </section>
   )
 }
+
+export default memo(CenterRecords)

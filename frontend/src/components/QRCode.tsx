@@ -1,12 +1,13 @@
+import { memo } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 
-export default function QRCode() {
+function QRCode() {
   const lanHost = import.meta.env.VITE_LAN_HOST || window.location.hostname
   const lanPort = import.meta.env.VITE_LAN_PORT || window.location.port
   const url = `http://${lanHost}:${lanPort}/?mode=home`
 
   return (
-    <div className="absolute bottom-[58px] right-[66px] z-30 flex flex-col items-center gap-3">
+    <div className="absolute bottom-[40px] right-[66px] z-30 flex w-[138px] flex-col items-center gap-3">
       <div className="flex h-[132px] w-[138px] items-center justify-center bg-[#D9D9D9]">
         <QRCodeSVG
           value={url}
@@ -23,3 +24,5 @@ export default function QRCode() {
     </div>
   )
 }
+
+export default memo(QRCode)

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { Era } from '../types/song'
 
 import vinylPanel from '../svg/circles-overlay/diamonds/vinyl/Panel.svg'
@@ -23,7 +24,7 @@ const diamonds: { era: Era; panel: string; icon: string }[] = [
   { era: 'ai', panel: aiPanel, icon: aiIcon },
 ]
 
-export default function EraDiamondFocus({ activeEra }: Props) {
+function EraDiamondFocus({ activeEra }: Props) {
   return (
     <div className="pointer-events-none absolute inset-0">
       {diamonds.map(({ era, panel, icon }) => {
@@ -54,3 +55,5 @@ export default function EraDiamondFocus({ activeEra }: Props) {
     </div>
   )
 }
+
+export default memo(EraDiamondFocus)

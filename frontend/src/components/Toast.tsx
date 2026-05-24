@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { CSSProperties } from 'react'
 import { eraConfig } from '../lib/eraConfig'
 import EraIcon from './EraIcon'
@@ -8,7 +9,7 @@ interface Props {
   song: Song | null
 }
 
-export default function Toast({ song }: Props) {
+function Toast({ song }: Props) {
   if (!song) return null
 
   const cfg = eraConfig[song.era]
@@ -52,3 +53,5 @@ export default function Toast({ song }: Props) {
     </div>
   )
 }
+
+export default memo(Toast)

@@ -1,10 +1,14 @@
 import { memo } from 'react'
 import { eraConfig } from '../lib/eraConfig'
 import EraIcon from './EraIcon'
-import type { Song } from '../types/song'
+import type { Era, Song } from '../types/song'
 
 import frameLeft from '../svg/ranking-panel-left/Frame.svg'
 import frameRight from '../svg/ranking-panel-right/Frame.svg'
+import vinylIcon from '../svg/ranking-panel-left/icons/Vinyl.svg'
+import cdIcon from '../svg/ranking-panel-left/icons/Cd.svg'
+import tapeIcon from '../svg/ranking-panel-left/icons/Tape.svg'
+import digitalIcon from '../svg/ranking-panel-left/icons/Digital.svg'
 import aiMusicBallOpaque from '../svg/ranking-panel-right/icons/AiMusicBallOpaque.svg'
 
 interface Props {
@@ -33,6 +37,15 @@ interface PanelLayout {
   badgeFill: string
   artistFontSize: number
   frame: string
+}
+
+type ClassicEra = Exclude<Era, 'ai'>
+
+const classicEraIcons: Record<ClassicEra, string> = {
+  vinyl: vinylIcon,
+  cd: cdIcon,
+  tape: tapeIcon,
+  digital: digitalIcon,
 }
 
 const layouts: Record<'classic' | 'ai', PanelLayout> = {
@@ -78,6 +91,10 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
   },
 }
 
+function ClassicRankingIcon({ era, size }: { era: ClassicEra; size: number }) {
+  return <img src={classicEraIcons[era]} alt="" className="h-full w-full object-contain" style={{ width: size, height: size }} />
+}
+
 function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const cfg = eraConfig[song.era]
   const iconLocalCx = layout.iconCx - layout.rowLeft
@@ -98,7 +115,7 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
         {song.era === 'ai' ? (
           <img src={aiMusicBallOpaque} alt="" className="h-full w-full object-contain" />
         ) : (
-          <EraIcon era={song.era} size={iconSize} />
+          <ClassicRankingIcon era={song.era} size={iconSize} />
         )}
       </div>
       <div
@@ -145,10 +162,10 @@ function EmptyState({ variant, layout }: { variant: 'classic' | 'ai'; layout: Pa
     >
       {isClassic ? (
         <div className="mb-4 flex items-center justify-center gap-2">
-          <EraIcon era="vinyl" size={38} />
-          <EraIcon era="cd" size={38} />
-          <EraIcon era="tape" size={38} />
-          <EraIcon era="digital" size={38} />
+          <ClassicRankingIcon era="vinyl" size={38} />
+          <ClassicRankingIcon era="cd" size={38} />
+          <ClassicRankingIcon era="tape" size={38} />
+          <ClassicRankingIcon era="digital" size={38} />
         </div>
       ) : (
         <div className="mb-4">

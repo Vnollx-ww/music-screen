@@ -66,6 +66,17 @@ def get_generated_music(db: Session, music_id: str) -> GeneratedMusic:
     return record
 
 
+def list_generated_music(db: Session) -> list[GeneratedMusic]:
+    now = datetime.now()
+    return list(
+        db.scalars(
+            select(GeneratedMusic)
+            .where(GeneratedMusic.status == "ready", GeneratedMusic.expires_at > now)
+            .order_by(GeneratedMusic.created_at.desc())
+        )
+    )
+
+
 def build_generated_music_out(record: GeneratedMusic) -> GeneratedMusicOut:
     return GeneratedMusicOut(
         id=record.id,

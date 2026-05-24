@@ -110,11 +110,10 @@
 
 .mh-action-ai {
   top: 528px;
-  cursor: default;
 }
 
 .mh-action-ai:active {
-  transform: none;
+  transform: scale(0.97);
 }
 
 .mh-action-title {

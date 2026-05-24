@@ -43,10 +43,9 @@ export default function MobileHomePage() {
             <span className="mh-action-title">歌曲推榜</span>
           </a>
 
-          <button type="button" className="mh-action mh-action-ai" disabled>
+          <a href="?mode=create" className="mh-action mh-action-ai">
             <span className="mh-action-title">AI共创混曲</span>
-            <span className="mh-action-note">敬请期待</span>
-          </button>
+          </a>
         </div>
       </div>
     </main>

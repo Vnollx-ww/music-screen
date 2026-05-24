@@ -73,7 +73,7 @@ python app.py
 - `MINIMAX_MUSIC_GENERATION_URL`：MiniMax 音乐生成接口地址（默认：`https://api.minimaxi.com/v1/music_generation`）
 - `MINIMAX_REQUEST_TIMEOUT_SECONDS`：调用 MiniMax 接口超时时间（默认：180）
 - `MUSIC_DOWNLOAD_TIMEOUT_SECONDS`：下载生成音频超时时间（默认：120）
-- `MINIO_ENDPOINT`：MinIO 服务端点（默认：`111.230.105.54:9000`）
+- `MINIO_ENDPOINT`：MinIO 服务端点（默认：`175.24.167.4:9000`）
 - `MINIO_ACCESS_KEY`：MinIO 访问密钥（必填）
 - `MINIO_SECRET_KEY`：MinIO 秘密密钥（必填）
 - `MINIO_BUCKET`：MinIO 存储桶名（默认：`music`）

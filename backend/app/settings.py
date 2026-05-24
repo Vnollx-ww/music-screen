@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     minimax_music_cover_preprocess_url: str = "https://api.minimaxi.com/v1/music_cover_preprocess"
     minimax_request_timeout_seconds: int = Field(default=180, gt=0)
     music_download_timeout_seconds: int = Field(default=120, gt=0)
-    minio_endpoint: str = "111.230.105.54:9000"
+    minio_endpoint: str = "175.24.167.4:9000"
     minio_access_key: str | None = None
     minio_secret_key: str | None = None
     minio_bucket: str = "music"

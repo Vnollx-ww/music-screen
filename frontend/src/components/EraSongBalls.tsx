@@ -59,7 +59,7 @@ const ballArtworks: Record<Era, BallArtwork[]> = {
     { id: 'record-4', svg: createBallSvg(record4Svg, '935 287 194 194') },
   ],
   ai: [
-    { id: 'ai-music-ball-enter-diamond', svg: createBallSvg(aiMusicBallEnterDiamondSvg, '49 110 388 388') },
+    { id: 'ai-music-ball-enter-diamond', svg: createBallSvg(aiMusicBallEnterDiamondSvg, '138 195 214 214') },
   ],
 }
 

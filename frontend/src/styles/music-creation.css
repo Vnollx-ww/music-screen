@@ -96,6 +96,41 @@
   letter-spacing: 0.6px;
 }
 
+.mc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mc-back-btn {
+  display: flex;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--mc-text-00);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.mc-back-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.mc-back-btn:active {
+  transform: scale(0.96);
+}
+
+.mc-back-btn span {
+  display: block;
+  margin-top: -2px;
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 1;
+}
+
 .mc-model-row {
   display: flex;
   align-items: center;
@@ -549,7 +584,9 @@
   margin-top: 12px;
 }
 
-.mc-shuffle-tag {
+.mc-shuffle-tag,
+.mc-tags-prev,
+.mc-tags-next {
   display: flex;
   width: 32px;
   height: 32px;
@@ -561,6 +598,19 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   color: var(--mc-text-01);
+}
+
+.mc-tags-prev,
+.mc-tags-next {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.mc-shuffle-tag:hover,
+.mc-tags-prev:hover,
+.mc-tags-next:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--mc-text-00);
 }
 
 .mc-tags-scroll {
@@ -1093,7 +1143,49 @@
   display: none;
 }
 
+@media (min-width: 1025px) and (max-width: 1180px) {
+  .mc-workspace {
+    gap: 12px;
+    padding: 12px 14px 0;
+  }
+
+  .mc-editor-panel {
+    width: 520px;
+    max-width: 520px;
+    min-width: 440px;
+    flex-basis: 520px;
+  }
+
+  .mc-editor-header {
+    margin-right: 0;
+  }
+
+  .mc-library-panel {
+    min-width: 300px;
+  }
+
+  .mc-form-scroll {
+    padding-right: 8px;
+  }
+
+  .mc-work-actions {
+    gap: 10px;
+  }
+
+  .mc-now-playing span {
+    max-width: 160px;
+  }
+
+  .mc-player-center {
+    margin-right: 20px;
+  }
+}
+
 @media (max-width: 1024px) {
+  .mc-shell {
+    height: 100dvh;
+  }
+
   .mc-workspace {
     padding: 16px 16px 0;
   }
@@ -1105,7 +1197,7 @@
     flex: 1 1 auto;
   }
 
-  .mc-editor-header h1 {
+  .mc-title-row h1 {
     display: none;
   }
 

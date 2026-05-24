@@ -22,7 +22,6 @@ type IconName =
   | 'prev'
   | 'next'
   | 'download'
-  | 'bookmark'
   | 'more'
   | 'history'
   | 'wave'
@@ -33,7 +32,14 @@ interface WorkItem extends GeneratedMusic {
   durationLabel: string
 }
 
-const styleTags = ['乡村', '驾驶场景', '合成器', '长笛', '手风琴', '内省', '钢琴', '唐风', '流行', '电子']
+const styleTagGroups = [
+  ['乡村', '驾驶场景', '合成器', '长笛', '手风琴', '内省', '钢琴', '唐风', '流行', '电子'],
+  ['赛博朋克', '夜晚城市', '霓虹', '低音', '鼓机', '未来感', '冷酷', '电子舞曲', '科技感', '高速'],
+  ['国风', '古筝', '琵琶', '笛子', '史诗', '江湖', '空灵女声', '山水', '节奏舒缓', '电影感'],
+  ['摇滚', '电吉他', '现场感', '热血', '鼓点强烈', '青春', '呐喊人声', '失真', '公路', '燃'],
+  ['爵士', '萨克斯', '钢琴三重奏', '慵懒', '咖啡馆', '即兴', '复古', '暖调', '夜色', '轻快'],
+  ['R&B', '灵魂乐', '丝滑人声', '浪漫', '慢速', '律动', '贝斯', '和声', '都市', '温柔'],
+]
 const coverImages = [
   'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582227642792971-other_42.png',
   'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582177961486079-other_13.png',
@@ -225,14 +231,6 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
     )
   }
 
-  if (name === 'bookmark') {
-    return (
-      <svg {...props}>
-        <path d="M5 4.8c0-.5.4-.8.8-.8h8.4c.4 0 .8.3.8.8v11.7l-5-1.7-5 1.7V4.8Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
-      </svg>
-    )
-  }
-
   if (name === 'more') {
     return (
       <svg {...props}>
@@ -293,15 +291,16 @@ export default function MusicCreationPage() {
   const [referenceFile, setReferenceFile] = useState<File | null>(null)
   const [works, setWorks] = useState<WorkItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'works' | 'favorites'>('works')
   const [loadingWorks, setLoadingWorks] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [styleTagGroupIndex, setStyleTagGroupIndex] = useState(0)
   const modelSelectRef = useRef<HTMLDivElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const styleTagsScrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let stopped = false
@@ -333,6 +332,7 @@ export default function MusicCreationPage() {
     () => musicModelOptions.find((option) => option.value === selectedModel) ?? musicModelOptions[0],
     [selectedModel],
   )
+  const styleTags = styleTagGroups[styleTagGroupIndex] ?? styleTagGroups[0]
 
   useEffect(() => {
     setCurrentTime(0)
@@ -367,6 +367,19 @@ export default function MusicCreationPage() {
 
   const clearLyrics = () => setLyrics('')
   const clearStyle = () => setStylePrompt('')
+  const switchStyleTags = () => setStyleTagGroupIndex((index) => (index + 1) % styleTagGroups.length)
+  const scrollStyleTagsRight = () => {
+    styleTagsScrollRef.current?.scrollBy({
+      left: 180,
+      behavior: 'smooth',
+    })
+  }
+  const scrollStyleTagsLeft = () => {
+    styleTagsScrollRef.current?.scrollBy({
+      left: -180,
+      behavior: 'smooth',
+    })
+  }
 
   const handleGenerate = (event: FormEvent) => {
     event.preventDefault()
@@ -429,7 +442,12 @@ export default function MusicCreationPage() {
           <section className="mc-workspace" role="main">
             <article className="mc-editor-panel">
               <header className="mc-editor-header">
-                <h1>音乐创作</h1>
+                <div className="mc-title-row">
+                  <button className="mc-back-btn" type="button" onClick={() => window.location.assign('?mode=home')} aria-label="返回主页">
+                    <span>‹</span>
+                  </button>
+                  <h1>音乐创作</h1>
+                </div>
                 <div className="mc-model-row">
                   <div className="mc-model-select-wrap" ref={modelSelectRef}>
                     <button
@@ -531,7 +549,7 @@ export default function MusicCreationPage() {
                   <section className="mc-text-card mc-flex-card">
                     <div className="mc-card-title-row">
                       <span>风格</span>
-                      <button type="button" aria-label="随机风格" className="mc-dice-btn">
+                      <button type="button" aria-label="随机风格" className="mc-dice-btn" onClick={switchStyleTags}>
                         <Icon name="dice" />
                       </button>
                     </div>
@@ -549,8 +567,9 @@ export default function MusicCreationPage() {
                       </button>
                     </div>
                     <div className="mc-tag-row">
-                      <button type="button" className="mc-shuffle-tag"><Icon name="shuffle" /></button>
-                      <div className="mc-tags-scroll">
+                      <button type="button" className="mc-shuffle-tag" onClick={switchStyleTags} aria-label="切换风格标签"><Icon name="shuffle" /></button>
+                      <button type="button" className="mc-tags-prev" onClick={scrollStyleTagsLeft} aria-label="向左查看更多风格标签">‹</button>
+                      <div className="mc-tags-scroll" ref={styleTagsScrollRef}>
                         {styleTags.map((tag) => (
                           <button type="button" className="mc-style-tag" onClick={() => appendTag(tag)} key={tag}>
                             <Icon name="plus" />
@@ -558,6 +577,7 @@ export default function MusicCreationPage() {
                           </button>
                         ))}
                       </div>
+                      <button type="button" className="mc-tags-next" onClick={scrollStyleTagsRight} aria-label="向右查看更多风格标签">›</button>
                     </div>
                   </section>
 
@@ -597,15 +617,13 @@ export default function MusicCreationPage() {
             <aside className="mc-library-panel">
               <div className="mc-library-card">
                 <header className="mc-tabs">
-                  <button type="button" className={activeTab === 'works' ? 'active' : ''} onClick={() => setActiveTab('works')}>作品</button>
-                  <button type="button" className={activeTab === 'favorites' ? 'active' : ''} onClick={() => setActiveTab('favorites')}>收藏</button>
-                  <span style={{ transform: `translateX(${activeTab === 'works' ? 0 : 57}px)` }} />
+                  <button type="button" className="active">作品</button>
+                  <span />
                 </header>
                 <div className="mc-work-list">
                   {loadingWorks && <div className="mc-empty">加载作品中...</div>}
-                  {!loadingWorks && activeTab === 'favorites' && <div className="mc-empty">暂无收藏作品</div>}
-                  {!loadingWorks && activeTab === 'works' && works.length === 0 && <div className="mc-empty">暂无作品，先生成一首音乐吧</div>}
-                  {!loadingWorks && activeTab === 'works' && works.map((work) => {
+                  {!loadingWorks && works.length === 0 && <div className="mc-empty">暂无作品，先生成一首音乐吧</div>}
+                  {!loadingWorks && works.map((work) => {
                     const selected = selectedWork?.id === work.id
                     return (
                       <button className={`mc-work-item${selected ? ' selected' : ''}`} type="button" key={work.id} onClick={() => setSelectedId(work.id)}>
@@ -622,7 +640,6 @@ export default function MusicCreationPage() {
                         <span className="mc-work-actions">
                           <Icon name="shuffle" />
                           <Icon name="download" />
-                          <Icon name="bookmark" />
                           <Icon name="more" />
                         </span>
                       </button>
@@ -671,7 +688,6 @@ export default function MusicCreationPage() {
 
               <div className="mc-player-actions">
                 <Icon name="download" />
-                <Icon name="bookmark" />
                 <Icon name="shuffle" />
               </div>
 

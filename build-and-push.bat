@@ -24,7 +24,7 @@ if "%VERSION%"=="--no-cache" set "VERSION="
 if "%VERSION%"=="--latest" set "VERSION="
 
 if "%VERSION%"=="" (
-    set /p "VERSION=请输入要构建并推送的版本号，例如 4.1: "
+    set /p "VERSION=Enter version to build and push, e.g. 4.1: "
 )
 
 if "%VERSION%"=="" (

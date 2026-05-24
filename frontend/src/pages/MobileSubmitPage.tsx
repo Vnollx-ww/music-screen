@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
-import EraIcon from '../components/EraIcon'
 import InlineSvg from '../components/InlineSvg'
 import SubmitTopRecord from '../components/SubmitTopRecord'
 import { useFitToWidth } from '../hooks/useFitToWidth'
@@ -8,6 +7,10 @@ import { uploadSourceAudio } from '../lib/music'
 import { insertSong } from '../lib/songs'
 import { decorateMobileSubmitBaseSvg } from '../lib/mobileSvgFloat'
 import type { Era } from '../types/song'
+import vinylIconUrl from '../svg/ranking-panel-left/icons/Vinyl.svg'
+import cdIconUrl from '../svg/ranking-panel-left/icons/Cd.svg'
+import tapeIconUrl from '../svg/ranking-panel-left/icons/Tape.svg'
+import digitalIconUrl from '../svg/ranking-panel-left/icons/Digital.svg'
 import submitBaseSvg from '../svg/mobile-submit/SubmitBase.svg?raw'
 import eraOptionSelectedUrl from '../svg/mobile-submit/EraOptionSelected.svg'
 import submitButtonActiveUrl from '../svg/mobile-submit/SubmitButtonActive.svg'
@@ -19,13 +22,14 @@ type SubmitEraOption = {
   value: Era
   name: string
   years: string
+  iconUrl: string
 }
 
 const submitEraOptions: SubmitEraOption[] = [
-  { value: 'vinyl', name: '黑胶', years: '1970' },
-  { value: 'cd', name: 'CD', years: '1990' },
-  { value: 'tape', name: '磁带', years: '1980' },
-  { value: 'digital', name: '数字', years: '2000' },
+  { value: 'vinyl', name: '黑胶', years: '1970', iconUrl: vinylIconUrl },
+  { value: 'cd', name: 'CD', years: '1990', iconUrl: cdIconUrl },
+  { value: 'tape', name: '磁带', years: '1980', iconUrl: tapeIconUrl },
+  { value: 'digital', name: '数字', years: '2000', iconUrl: digitalIconUrl },
 ]
 
 const floatingSubmitBaseSvg = decorateMobileSubmitBaseSvg(submitBaseSvg)
@@ -220,7 +224,7 @@ export default function MobileSubmitPage() {
                     <img src={eraOptionSelectedUrl} className="ms-era-option-bg" alt="" aria-hidden />
                   )}
                   <span className="ms-era-option-icon">
-                    <EraIcon era={option.value} size={36} />
+                    <img src={option.iconUrl} width={36} height={36} alt="" aria-hidden />
                   </span>
                   <span className="ms-era-option-name">{option.name}</span>
                   <span className="ms-era-option-year">{option.years}</span>

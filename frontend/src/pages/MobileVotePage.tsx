@@ -20,6 +20,7 @@ import bubble1Url from '../svg/mobile-vote/bubbles/RankBubble1.svg'
 import bubble2Url from '../svg/mobile-vote/bubbles/RankBubble2.svg'
 import bubble3Url from '../svg/mobile-vote/bubbles/RankBubble3.svg'
 import bubble4Url from '../svg/mobile-vote/bubbles/RankBubble4.svg'
+import bubble5Url from '../svg/mobile-vote/bubbles/RankBubble5.svg'
 
 import '../styles/mobile-vote.css'
 
@@ -81,7 +82,7 @@ const MobileVoteRow = memo(function MobileVoteRow({
   onVote,
 }: MobileVoteRowProps) {
   const top = index * ROW_HEIGHT
-  const bubbleUrl = BUBBLE_URLS[index % BUBBLE_URLS.length]
+  const bubbleUrl = song.era === 'ai' ? bubble5Url : BUBBLE_URLS[index % BUBBLE_URLS.length]
   const showError = errorMessage.length > 0
 
   return (

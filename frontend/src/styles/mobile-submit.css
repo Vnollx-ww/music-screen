@@ -82,6 +82,12 @@
   transform-origin: center center;
 }
 
+.ms-top-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .ms-era-pill-label {
   position: absolute;
   top: 258px;

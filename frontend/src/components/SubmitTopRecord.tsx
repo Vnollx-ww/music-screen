@@ -1,9 +1,28 @@
 import { useId } from 'react'
+import InlineSvg from './InlineSvg'
 import type { Era } from '../types/song'
+import vinylRecordSvg from '../svg/center-records/Record1.svg?raw'
+import digitalRecordSvg from '../svg/center-records/Record4.svg?raw'
+import tapeRecordSvg from '../svg/center-records/Record5.svg?raw'
+import cdRecordSvg from '../svg/center-records/Record6.svg?raw'
 
 type SubmitTopRecordProps = {
   era: Era
   className?: string
+}
+
+const submitTopRecordSvgs: Partial<Record<Era, string>> = {
+  vinyl: vinylRecordSvg,
+  cd: cdRecordSvg,
+  tape: tapeRecordSvg,
+  digital: digitalRecordSvg,
+}
+
+const submitTopRecordViewBoxes: Partial<Record<Era, string>> = {
+  vinyl: '698.5 186.5 204.5 204.5',
+  cd: '447.5 306.5 171.5 171.5',
+  tape: '1087.5 490.5 154.5 154.5',
+  digital: '939.5 291.5 185 185',
 }
 
 const TOP_RECORD_SIZE = 100
@@ -17,6 +36,13 @@ function getRecordTransform(centerX: number, centerY: number, diameter: number, 
 
 export default function SubmitTopRecord({ era, className }: SubmitTopRecordProps) {
   const prefix = useId().replace(/:/g, '')
+  const recordSvg = submitTopRecordSvgs[era]
+  const viewBox = submitTopRecordViewBoxes[era]
+
+  if (recordSvg && viewBox) {
+    const croppedSvg = recordSvg.replace(/<svg\b([^>]*)\bviewBox="[^"]*"([^>]*)>/, `<svg$1viewBox="${viewBox}"$2>`)
+    return <InlineSvg html={croppedSvg} className={className} />
+  }
 
   if (era === 'vinyl') {
     const linear = `${prefix}-submit-top-vinyl-linear`

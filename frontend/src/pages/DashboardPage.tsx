@@ -35,7 +35,7 @@ export default function DashboardPage() {
     if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
   }, [])
 
-  const { songs, loading, error, status } = useSongs(onNewSong)
+  const { songs } = useSongs(onNewSong)
   const { classic, ai } = useLeaderboards(songs)
   const scale = useResponsiveScale()
   const focusEra = focusSong?.era ?? null

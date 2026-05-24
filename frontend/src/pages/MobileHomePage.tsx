@@ -1,26 +1,11 @@
-import { useEffect, useState } from 'react'
 import InlineSvg from '../components/InlineSvg'
+import { useFitToWidth } from '../hooks/useFitToWidth'
 import { decorateMobileHomeBackgroundSvg } from '../lib/mobileSvgFloat'
 import homeBackgroundSvg from '../svg/mobile-home/HomeBackground.svg?raw'
 import homeBubblesUrl from '../svg/mobile-home/HomeBubbles.svg'
 import '../styles/mobile-home.css'
 
 const floatingHomeBackgroundSvg = decorateMobileHomeBackgroundSvg(homeBackgroundSvg)
-
-function useFitToWidth(designWidth: number) {
-  const [scale, setScale] = useState(() => {
-    if (typeof window === 'undefined') return 1
-    return Math.min(1.6, window.innerWidth / designWidth)
-  })
-
-  useEffect(() => {
-    const update = () => setScale(Math.min(1.6, window.innerWidth / designWidth))
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [designWidth])
-
-  return scale
-}
 
 export default function MobileHomePage() {
   const scale = useFitToWidth(390)

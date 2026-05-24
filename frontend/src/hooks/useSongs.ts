@@ -15,7 +15,10 @@ export function useSongs(onNewSong?: (s: Song) => void) {
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<RealtimeStatus>('CONNECTING')
   const cbRef = useRef(onNewSong)
-  cbRef.current = onNewSong
+
+  useEffect(() => {
+    cbRef.current = onNewSong
+  }, [onNewSong])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -38,11 +41,22 @@ export function useSongs(onNewSong?: (s: Song) => void) {
   }, [])
 
   useEffect(() => {
-    void refresh()
-
     let stopped = false
     let socket: WebSocket | null = null
     let reconnectTimer: ReturnType<typeof window.setTimeout> | null = null
+
+    const loadInitialSongs = async () => {
+      try {
+        const nextSongs = await fetchSongs()
+        if (stopped) return
+        setSongs(nextSongs)
+        setError(null)
+      } catch (e: unknown) {
+        if (!stopped) setError(e instanceof Error ? e.message : '加载失败')
+      } finally {
+        if (!stopped) setLoading(false)
+      }
+    }
 
     const connect = () => {
       setStatus('CONNECTING')
@@ -92,6 +106,7 @@ export function useSongs(onNewSong?: (s: Song) => void) {
       }
     }
 
+    void loadInitialSongs()
     connect()
 
     return () => {
@@ -99,7 +114,7 @@ export function useSongs(onNewSong?: (s: Song) => void) {
       if (reconnectTimer) window.clearTimeout(reconnectTimer)
       socket?.close()
     }
-  }, [refresh])
+  }, [])
 
   return { songs, loading, error, status, refresh, upsertSong }
 }

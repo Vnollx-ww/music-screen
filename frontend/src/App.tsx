@@ -1,19 +1,22 @@
+import { lazy, Suspense } from 'react'
 import { useMobileMode } from './hooks/useMobileMode'
-import DashboardPage from './pages/DashboardPage'
-import MobileHomePage from './pages/MobileHomePage'
-import MobileSubmitPage from './pages/MobileSubmitPage'
-import MobileVotePage from './pages/MobileVotePage'
-import MusicCreationPage from './pages/MusicCreationPage'
+
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const MobileHomePage = lazy(() => import('./pages/MobileHomePage'))
+const MobileSubmitPage = lazy(() => import('./pages/MobileSubmitPage'))
+const MobileVotePage = lazy(() => import('./pages/MobileVotePage'))
+const MusicCreationPage = lazy(() => import('./pages/MusicCreationPage'))
 
 function App() {
   const mobileMode = useMobileMode()
 
-  if (mobileMode === 'home') return <MobileHomePage />
-  if (mobileMode === 'vote') return <MobileVotePage />
-  if (mobileMode === 'mobile') return <MobileSubmitPage />
-  if (mobileMode === 'create') return <MusicCreationPage />
+  let page = <DashboardPage />
+  if (mobileMode === 'home') page = <MobileHomePage />
+  if (mobileMode === 'vote') page = <MobileVotePage />
+  if (mobileMode === 'mobile') page = <MobileSubmitPage />
+  if (mobileMode === 'create') page = <MusicCreationPage />
 
-  return <DashboardPage />
+  return <Suspense fallback={null}>{page}</Suspense>
 }
 
 export default App

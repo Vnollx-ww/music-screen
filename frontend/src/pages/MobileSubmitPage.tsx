@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import EraIcon from '../components/EraIcon'
 import InlineSvg from '../components/InlineSvg'
 import SubmitTopRecord from '../components/SubmitTopRecord'
+import { useFitToWidth } from '../hooks/useFitToWidth'
 import { insertSong } from '../lib/songs'
 import { decorateMobileSubmitBaseSvg } from '../lib/mobileSvgFloat'
 import type { Era } from '../types/song'
@@ -28,21 +29,6 @@ const submitEraOptions: SubmitEraOption[] = [
 
 const floatingSubmitBaseSvg = decorateMobileSubmitBaseSvg(submitBaseSvg)
 const SUBMIT_ANIMATION_MS = 2600
-
-function useFitToWidth(designWidth: number) {
-  const [scale, setScale] = useState(() => {
-    if (typeof window === 'undefined') return 1
-    return Math.min(1.6, window.innerWidth / designWidth)
-  })
-
-  useEffect(() => {
-    const update = () => setScale(Math.min(1.6, window.innerWidth / designWidth))
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [designWidth])
-
-  return scale
-}
 
 export default function MobileSubmitPage() {
   const [title, setTitle] = useState('')

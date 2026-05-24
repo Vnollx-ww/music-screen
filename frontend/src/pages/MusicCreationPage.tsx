@@ -328,7 +328,6 @@ export default function MusicCreationPage() {
 
   useEffect(() => {
     let stopped = false
-    setLoadingWorks(true)
     void fetchGeneratedMusic()
       .then((records) => {
         if (stopped) return
@@ -359,11 +358,22 @@ export default function MusicCreationPage() {
   const selectedModelIsCover = isCoverModel(selectedModel)
   const styleTags = styleTagGroups[styleTagGroupIndex] ?? styleTagGroups[0]
 
-  useEffect(() => {
+  const handleModelSelect = (model: MusicModelValue) => {
+    setSelectedModel(model)
+    setIsModelOpen(false)
+    if (!isCoverModel(model)) {
+      setReferenceFile(null)
+      setCoverFeatureId('')
+      setPreprocessingCover(false)
+    }
+  }
+
+  const handleWorkSelect = (workId: string) => {
+    setSelectedId(workId)
     setCurrentTime(0)
     setDuration(0)
     setPlaying(false)
-  }, [selectedWork?.id])
+  }
 
   useEffect(() => {
     if (!isModelOpen) return
@@ -375,13 +385,6 @@ export default function MusicCreationPage() {
     document.addEventListener('pointerdown', handlePointerDown)
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [isModelOpen])
-
-  useEffect(() => {
-    if (selectedModelIsCover) return
-    setReferenceFile(null)
-    setCoverFeatureId('')
-    setPreprocessingCover(false)
-  }, [selectedModelIsCover])
 
   const handleReferenceChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null
@@ -566,10 +569,7 @@ export default function MusicCreationPage() {
                               role="option"
                               aria-selected={isSelected}
                               key={option.value}
-                              onClick={() => {
-                                setSelectedModel(option.value)
-                                setIsModelOpen(false)
-                              }}
+                              onClick={() => handleModelSelect(option.value)}
                             >
                               <span className="mc-model-option-content">
                                 <span className="mc-model-option-title">
@@ -723,7 +723,7 @@ export default function MusicCreationPage() {
                         type="button"
                         key={work.id}
                         onClick={() => {
-                          if (!work.isPending) setSelectedId(work.id)
+                          if (!work.isPending) handleWorkSelect(work.id)
                         }}
                         disabled={work.isPending}
                       >

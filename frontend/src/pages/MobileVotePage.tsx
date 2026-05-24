@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type UIEvent } from 'react'
+import { memo, useCallback, useMemo, useState, type UIEvent } from 'react'
 import InlineSvg from '../components/InlineSvg'
 import { useSongs } from '../hooks/useSongs'
+import { useFitToWidth } from '../hooks/useFitToWidth'
 import { calcScore, voteSong } from '../lib/songs'
 import { decorateMobileVoteBackgroundSvg } from '../lib/mobileSvgFloat'
 import type { Song } from '../types/song'
@@ -58,20 +59,72 @@ function getVoteErrorMessage(err: unknown): string {
   return '投票失败，请稍后重试'
 }
 
-function useFitToWidth(designWidth: number) {
-  const [scale, setScale] = useState(() => {
-    if (typeof window === 'undefined') return 1
-    return Math.min(1.6, window.innerWidth / designWidth)
-  })
-
-  useEffect(() => {
-    const update = () => setScale(Math.min(1.6, window.innerWidth / designWidth))
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [designWidth])
-
-  return scale
+type MobileVoteRowProps = {
+  song: Song
+  index: number
+  isVoting: boolean
+  isVoted: boolean
+  isVoteLocked: boolean
+  isLast: boolean
+  errorMessage: string
+  onVote: (song: Song) => void
 }
+
+const MobileVoteRow = memo(function MobileVoteRow({
+  song,
+  index,
+  isVoting,
+  isVoted,
+  isVoteLocked,
+  isLast,
+  errorMessage,
+  onVote,
+}: MobileVoteRowProps) {
+  const top = index * ROW_HEIGHT
+  const bubbleUrl = BUBBLE_URLS[index % BUBBLE_URLS.length]
+  const showError = errorMessage.length > 0
+
+  return (
+    <div className="mv-row" style={{ top }}>
+      <img src={bubbleUrl} className="mv-row-bubble" alt="" aria-hidden />
+
+      <div className="mv-row-info">
+        <h2 className="mv-row-title">{song.title}</h2>
+        <div className="mv-row-meta">
+          <span className="mv-row-artist">{song.artist}</span>
+          <span className="mv-row-votes">{song.votes} 票</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className={
+          'mv-vote-btn' +
+          (isVoting ? ' mv-vote-btn-voting' : '') +
+          (isVoted ? ' mv-vote-btn-voted' : '')
+        }
+        disabled={isVoteLocked}
+        onClick={() => onVote(song)}
+      >
+        <img src={voteButtonUrl} className="mv-vote-btn-bg" alt="" aria-hidden />
+        <span className="mv-vote-btn-text">
+          {isVoting ? '推榜中...' : isVoted ? '已推 +1' : '推榜！'}
+        </span>
+      </button>
+
+      {showError && (
+        <div className="mv-row-error" role="alert">
+          <span aria-hidden>⚠️</span>
+          <span className="mv-row-error-text">{errorMessage}</span>
+        </div>
+      )}
+
+      {!isLast && (
+        <span className="mv-row-divider" aria-hidden />
+      )}
+    </div>
+  )
+})
 
 export default function MobileVotePage() {
   const { songs, loading, error, upsertSong } = useSongs()
@@ -90,40 +143,47 @@ export default function MobileVotePage() {
     return rankedSongs.slice(0, visibleCount)
   }, [rankedSongs, visibleCount])
 
-  const handleVote = async (song: Song) => {
+  const handleVote = useCallback((song: Song) => {
     if (votingId) return
     setVotingId(song.id)
     setErrMsg('')
     setVoteError(null)
-    try {
-      const updatedSong = await voteSong(song.id)
-      upsertSong(updatedSong)
-      setVoteError(null)
-      setVotedId(song.id)
-      window.setTimeout(() => setVotedId((id) => (id === song.id ? null : id)), 1400)
-    } catch (err: unknown) {
-      const message = getVoteErrorMessage(err)
-      if (message.includes('投票次数已达上限')) {
-        setErrMsg(message)
-      } else {
-        setErrMsg(`《${song.title}》投票失败：${message}`)
-        setVoteError({ songId: song.id, message })
-      }
-    } finally {
-      setVotingId(null)
-    }
-  }
+    void voteSong(song.id)
+      .then((updatedSong) => {
+        upsertSong(updatedSong)
+        setVoteError(null)
+        setVotedId(song.id)
+        window.setTimeout(() => setVotedId((id) => (id === song.id ? null : id)), 1400)
+      })
+      .catch((err: unknown) => {
+        const message = getVoteErrorMessage(err)
+        if (message.includes('投票次数已达上限')) {
+          setErrMsg(message)
+        } else {
+          setErrMsg(`《${song.title}》投票失败：${message}`)
+          setVoteError({ songId: song.id, message })
+        }
+      })
+      .finally(() => {
+        setVotingId(null)
+      })
+  }, [upsertSong, votingId])
 
-  const handleListScroll = (event: UIEvent<HTMLDivElement>) => {
+  const rankedSongCount = rankedSongs.length
+  const handleListScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
     const list = event.currentTarget
     const distanceToBottom = list.scrollHeight - list.scrollTop - list.clientHeight
 
-    if (distanceToBottom > ROW_HEIGHT || visibleCount >= rankedSongs.length) return
+    if (distanceToBottom > ROW_HEIGHT) return
 
-    setVisibleCount((count) => Math.min(count + PAGE_SIZE, rankedSongs.length))
-  }
+    setVisibleCount((count) => {
+      if (count >= rankedSongCount) return count
+      return Math.min(count + PAGE_SIZE, rankedSongCount)
+    })
+  }, [rankedSongCount])
 
   const hasMoreSongs = visibleRankedSongs.length < rankedSongs.length
+  const isVoteLocked = votingId !== null
   const visibleRowCount = Math.min(visibleRankedSongs.length, MAX_VISIBLE_ROWS)
   const maxListHeight = PANEL_CONTENT_BOTTOM - FIRST_ROW_TOP
   const listHeight = Math.min(visibleRowCount * ROW_HEIGHT, maxListHeight)
@@ -195,55 +255,19 @@ export default function MobileVotePage() {
           ) : (
             <div className="mv-list" style={{ top: FIRST_ROW_TOP, height: listHeight }} onScroll={handleListScroll}>
               <div className="mv-list-inner" style={{ height: listContentHeight }}>
-                {visibleRankedSongs.map((song, i) => {
-                  const isVoting = votingId === song.id
-                  const isVoted = votedId === song.id
-                  const top = i * ROW_HEIGHT
-                  const bubbleUrl = BUBBLE_URLS[i % BUBBLE_URLS.length]
-                  const isLast = i === visibleRankedSongs.length - 1 && !hasMoreSongs
-                  const showError = voteError?.songId === song.id
-
-                  return (
-                    <div key={song.id} className="mv-row" style={{ top }}>
-                      <img src={bubbleUrl} className="mv-row-bubble" alt="" aria-hidden />
-
-                      <div className="mv-row-info">
-                        <h2 className="mv-row-title">{song.title}</h2>
-                        <div className="mv-row-meta">
-                          <span className="mv-row-artist">{song.artist}</span>
-                          <span className="mv-row-votes">{song.votes} 票</span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        className={
-                          'mv-vote-btn' +
-                          (isVoting ? ' mv-vote-btn-voting' : '') +
-                          (isVoted ? ' mv-vote-btn-voted' : '')
-                        }
-                        disabled={Boolean(votingId)}
-                        onClick={() => void handleVote(song)}
-                      >
-                        <img src={voteButtonUrl} className="mv-vote-btn-bg" alt="" aria-hidden />
-                        <span className="mv-vote-btn-text">
-                          {isVoting ? '推榜中...' : isVoted ? '已推 +1' : '推榜！'}
-                        </span>
-                      </button>
-
-                      {showError && (
-                        <div className="mv-row-error" role="alert">
-                          <span aria-hidden>⚠️</span>
-                          <span className="mv-row-error-text">{voteError.message}</span>
-                        </div>
-                      )}
-
-                      {!isLast && (
-                        <span className="mv-row-divider" aria-hidden />
-                      )}
-                    </div>
-                  )
-                })}
+                {visibleRankedSongs.map((song, i) => (
+                  <MobileVoteRow
+                    key={song.id}
+                    song={song}
+                    index={i}
+                    isVoting={votingId === song.id}
+                    isVoted={votedId === song.id}
+                    isVoteLocked={isVoteLocked}
+                    isLast={i === visibleRankedSongs.length - 1 && !hasMoreSongs}
+                    errorMessage={voteError?.songId === song.id ? voteError.message : ''}
+                    onVote={handleVote}
+                  />
+                ))}
               </div>
             </div>
           )}

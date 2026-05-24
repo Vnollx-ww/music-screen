@@ -22,6 +22,7 @@ export type GenerateMusicInput = {
   audio_url?: string
   audio_base64?: string
   cover_feature_id?: string
+  reference_music_id?: string
 }
 
 export type MusicCoverPreprocessInput = {
@@ -52,6 +53,7 @@ export async function generateMusic(input: GenerateMusicInput): Promise<Generate
       audio_url: input.audio_url?.trim() || undefined,
       audio_base64: input.audio_base64 || undefined,
       cover_feature_id: input.cover_feature_id?.trim() || undefined,
+      reference_music_id: input.reference_music_id?.trim() || undefined,
       audio_setting: {
         sample_rate: 44100,
         bitrate: 256000,

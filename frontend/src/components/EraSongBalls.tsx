@@ -8,6 +8,7 @@ import record3Svg from '../svg/center-records/Record3.svg?raw'
 import record4Svg from '../svg/center-records/Record4.svg?raw'
 import record5Svg from '../svg/center-records/Record5.svg?raw'
 import record6Svg from '../svg/center-records/Record6.svg?raw'
+import aiMusicBallEnterDiamondSvg from '../svg/center-records/AiMusicBallEnterDiamond.svg?raw'
 
 interface Props {
   songs: Song[]
@@ -30,8 +31,6 @@ type FlyStyle = CSSProperties & {
   '--ball-dy': string
 }
 
-type ClassicEra = Exclude<Era, 'ai'>
-
 interface BallArtwork {
   id: string
   svg: string
@@ -44,7 +43,7 @@ const RELAXED_CENTER_DISTANCES = [MIN_CENTER_DISTANCE, BALL_SIZE * 0.78, BALL_SI
 const POSITION_ATTEMPTS = 90
 const VOTE_EFFECT_MS = 1050
 
-const ballArtworks: Record<ClassicEra, BallArtwork[]> = {
+const ballArtworks: Record<Era, BallArtwork[]> = {
   vinyl: [
     { id: 'record-1', svg: createBallSvg(record1Svg, '694 182 214 214') },
     { id: 'record-3', svg: createBallSvg(record3Svg, '848 379 164 164') },
@@ -58,6 +57,9 @@ const ballArtworks: Record<ClassicEra, BallArtwork[]> = {
   digital: [
     { id: 'record-2', svg: createBallSvg(record2Svg, '524 407 206 206') },
     { id: 'record-4', svg: createBallSvg(record4Svg, '935 287 194 194') },
+  ],
+  ai: [
+    { id: 'ai-music-ball-enter-diamond', svg: createBallSvg(aiMusicBallEnterDiamondSvg, '49 110 388 388') },
   ],
 }
 
@@ -96,13 +98,7 @@ function createBallSvg(svg: string, viewBox: string) {
   )
 }
 
-function isClassicEra(era: Era): era is ClassicEra {
-  return era !== 'ai'
-}
-
 function getBallArtwork(song: Song) {
-  if (!isClassicEra(song.era)) return ballArtworks.vinyl[0]
-
   const artworks = ballArtworks[song.era]
   const index = Math.floor(seededUnit(song.id + ':artwork') * artworks.length) % artworks.length
   return artworks[index]
@@ -211,8 +207,8 @@ function EraSongBalls({ songs, activeSong }: Props) {
   const previousVotesRef = useRef<Map<string, number> | null>(null)
   const activeVoteRef = useRef<VoteQueueItem | null>(null)
   const sequenceRef = useRef(0)
-  const flySong = activeSong && activeSong.era !== 'ai' ? activeSong : null
-  const ballSongs = useMemo(() => songs.filter((song) => song.era !== 'ai'), [songs])
+  const flySong = activeSong
+  const ballSongs = songs
   const layoutSongs = useMemo(() => {
     if (!flySong || ballSongs.some((song) => song.id === flySong.id)) return ballSongs
     return [...ballSongs, flySong]

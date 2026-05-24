@@ -5,6 +5,7 @@ import type { Song } from '../types/song'
 
 import frameLeft from '../svg/ranking-panel-left/Frame.svg'
 import frameRight from '../svg/ranking-panel-right/Frame.svg'
+import aiMusicBallOpaque from '../svg/ranking-panel-right/icons/AiMusicBallOpaque.svg'
 
 interface Props {
   title: string
@@ -81,11 +82,11 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const cfg = eraConfig[song.era]
   const iconLocalCx = layout.iconCx - layout.rowLeft
   const badgeLocalLeft = layout.badgeLeft - layout.rowLeft
+  const iconSize = song.era === 'ai' ? 90 : layout.iconRadius * 2
   const contentLeft = iconLocalCx + layout.iconRadius + 14
   const contentRight = badgeLocalLeft - 8
   const badgeY = 37.5 - layout.badgeHeight / 2 + layout.badgeOffsetY
   const votesY = Math.max(8, badgeY - 28)
-  const iconSize = layout.iconRadius * 2
 
   return (
     <>
@@ -94,7 +95,11 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
         className="absolute flex items-center justify-center"
         style={{ left: iconLocalCx - iconSize / 2, top: (75 - iconSize) / 2, width: iconSize, height: iconSize }}
       >
-        <EraIcon era={song.era} size={iconSize} />
+        {song.era === 'ai' ? (
+          <img src={aiMusicBallOpaque} alt="" className="h-full w-full object-contain" />
+        ) : (
+          <EraIcon era={song.era} size={iconSize} />
+        )}
       </div>
       <div
         className="absolute flex flex-col justify-center gap-[4px]"

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from sqlalchemy import JSON, BigInteger, DateTime, Integer, String, Text, func
+from sqlalchemy import JSON, BigInteger, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .database import Base
@@ -20,6 +20,7 @@ class Song(Base):
     __tablename__ = "songs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    music_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("generated_music.id", onupdate="CASCADE", ondelete="SET NULL"), nullable=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     artist: Mapped[str | None] = mapped_column(String(255), nullable=True)
     era: Mapped[str] = mapped_column(String(16), nullable=False, default=Era.digital.value)

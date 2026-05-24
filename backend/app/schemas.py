@@ -8,6 +8,7 @@ from .models import Era
 
 class SongOut(BaseModel):
     id: str
+    music_id: str | None = None
     title: str
     artist: str | None
     era: Era
@@ -21,6 +22,7 @@ class SongOut(BaseModel):
 
 class CreateSongRequest(BaseModel):
     title: str = Field(min_length=1, max_length=255)
+    music_id: str | None = Field(default=None, max_length=36)
     artist: str | None = Field(default=None, max_length=255)
     era: Era
 
@@ -32,9 +34,9 @@ class CreateSongRequest(BaseModel):
             raise ValueError("歌曲名称不能为空")
         return normalized
 
-    @field_validator("artist")
+    @field_validator("music_id", "artist")
     @classmethod
-    def normalize_artist(cls, value: str | None) -> str | None:
+    def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
@@ -64,6 +66,7 @@ class GenerateMusicRequest(BaseModel):
     audio_url: str | None = Field(default=None, max_length=2048)
     audio_base64: str | None = None
     cover_feature_id: str | None = Field(default=None, max_length=255)
+    reference_music_id: str | None = Field(default=None, max_length=36)
     audio_setting: MusicAudioSetting = Field(default_factory=MusicAudioSetting)
     output_format: Literal["url"] = "url"
 
@@ -72,7 +75,7 @@ class GenerateMusicRequest(BaseModel):
     def normalize_required_text(cls, value: str) -> str:
         return value.strip()
 
-    @field_validator("lyrics", "audio_url", "audio_base64", "cover_feature_id")
+    @field_validator("lyrics", "audio_url", "audio_base64", "cover_feature_id", "reference_music_id")
     @classmethod
     def normalize_optional_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -83,13 +86,13 @@ class GenerateMusicRequest(BaseModel):
     @model_validator(mode="after")
     def validate_model_payload(self) -> "GenerateMusicRequest":
         is_cover = self.model in {"music-cover", "music-cover-free"}
-        reference_count = sum(value is not None for value in (self.audio_url, self.audio_base64, self.cover_feature_id))
+        reference_count = sum(value is not None for value in (self.audio_url, self.audio_base64, self.cover_feature_id, self.reference_music_id))
 
         if is_cover:
             if len(self.prompt) < 10 or len(self.prompt) > 300:
                 raise ValueError("翻唱模型的 prompt 长度必须为 10 到 300 个字符")
             if reference_count != 1:
-                raise ValueError("翻唱模型必须且只能提供 audio_url、audio_base64、cover_feature_id 其中一个")
+                raise ValueError("翻唱模型必须且只能提供 audio_url、audio_base64、cover_feature_id、reference_music_id 其中一个")
             if self.cover_feature_id is not None and self.lyrics is None:
                 raise ValueError("使用 cover_feature_id 生成翻唱时 lyrics 必填")
             if self.lyrics is not None and not 10 <= len(self.lyrics) <= 1000:

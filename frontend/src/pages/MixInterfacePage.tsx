@@ -1,0 +1,681 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties, ChangeEvent, SVGProps } from 'react'
+import { useLeaderboards } from '../hooks/useLeaderboards'
+import { useSongs } from '../hooks/useSongs'
+import { fetchGeneratedMusic, generateMusic } from '../lib/music'
+import type { GeneratedMusic } from '../lib/music'
+import { calcScore, insertSong } from '../lib/songs'
+import type { Song } from '../types/song'
+import headerLeftPanel from '../svg/mix-interface/header/left/panels/HeaderPanel.svg'
+import headerLeftIconRaw from '../svg/mix-interface/header/left/icons/MusicNoteLogo.svg?raw'
+import headerRightPanel from '../svg/mix-interface/header/right/panels/HeaderPanel.svg'
+import headerRightIcon from '../svg/mix-interface/header/right/icons/BlendBubbles.svg'
+import topCapsule from '../svg/mix-interface/selector/capsules/TopBlackCapsule.svg'
+import selectorPanel from '../svg/mix-interface/selector/panels/RecordsPanel.svg'
+import selectorChevron from '../svg/mix-interface/selector/icons/ChevronRight.svg'
+import pinkRecord from '../svg/mix-interface/selector/records/PinkNeedleRecord.svg'
+import purpleRecord from '../svg/mix-interface/selector/records/PurpleVinylRecord.svg'
+import robotRecord from '../svg/mix-interface/selector/records/RobotRecord.svg'
+import cyanRecord from '../svg/mix-interface/selector/records/CyanMusicNoteRecord.svg'
+import pinkLabel from '../svg/mix-interface/selector/capsules/labels/PinkNeedleLabel.svg'
+import purpleLabel from '../svg/mix-interface/selector/capsules/labels/PurpleVinylLabel.svg'
+import robotLabel from '../svg/mix-interface/selector/capsules/labels/RobotLabel.svg'
+import cyanLabel from '../svg/mix-interface/selector/capsules/labels/CyanMusicNoteLabel.svg'
+import bottomCapsule from '../svg/mix-interface/selector/capsules/BottomBlackCapsule.svg'
+import formPanel from '../svg/mix-interface/form/panels/FormPanel.svg'
+import styleCard1 from '../svg/mix-interface/form/cards/Card1.svg'
+import styleCard2 from '../svg/mix-interface/form/cards/Card2.svg'
+import styleCard3 from '../svg/mix-interface/form/cards/Card3.svg'
+import styleCard4 from '../svg/mix-interface/form/cards/Card4.svg'
+import secondaryCapsule from '../svg/mix-interface/form/capsules/SecondaryBlackCapsule.svg'
+import primaryCapsule from '../svg/mix-interface/form/capsules/PrimaryGradientCapsule.svg'
+import rankingPanel from '../svg/mix-interface/ranking/panels/RankingPanel.svg'
+import playIcon from '../svg/mix-interface/ranking/icons/Play1.svg'
+import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
+import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
+import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
+import backArrow from '../svg/mobile-vote/icons/BackArrow.svg'
+import '../styles/mix-interface.css'
+
+type WorkItem = GeneratedMusic & {
+  title: string
+  durationLabel: string
+  songId?: string
+  missingMusic?: boolean
+  isPending?: boolean
+}
+
+type MixIconName = 'play' | 'pause' | 'prev' | 'next' | 'wave'
+
+const DESIGN_WIDTH = 1366
+const DESIGN_HEIGHT = 1014
+const headerLeftIcon = headerLeftIconRaw.replace('viewBox="100 98 50 43"', 'viewBox="96 96 56 52"')
+
+const coverImages = [
+  'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582227642792971-other_42.png',
+  'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582177961486079-other_13.png',
+]
+
+const styleOptions = [
+  {
+    id: 'nostalgic-lyric',
+    title: '怀旧抒情',
+    icon: pinkRecord,
+    label: pinkLabel,
+    card: styleCard1,
+    prompt: '怀旧抒情，旋律温暖细腻，情绪真挚，带有年代感与回忆氛围',
+  },
+  {
+    id: 'square-dance',
+    title: '广场舞曲',
+    icon: purpleRecord,
+    label: purpleLabel,
+    card: styleCard2,
+    prompt: '广场舞曲，节奏明快，律动鲜明，旋律上口，适合群体舞动',
+  },
+  {
+    id: 'passionate-rock',
+    title: '激情摇滚',
+    icon: robotRecord,
+    label: robotLabel,
+    card: styleCard3,
+    prompt: '激情摇滚，吉他强烈，鼓点有冲击力，情绪高燃，现场感充足',
+  },
+  {
+    id: 'chinese-style',
+    title: '中国风',
+    icon: cyanRecord,
+    label: cyanLabel,
+    card: styleCard4,
+    prompt: '中国风，融合传统民乐色彩与现代编曲，旋律典雅有东方韵味',
+  },
+]
+
+function Icon({ name, className }: { name: MixIconName; className?: string }) {
+  const props: SVGProps<SVGSVGElement> = {
+    className,
+    width: 20,
+    height: 20,
+    viewBox: '0 0 20 20',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+  }
+
+  if (name === 'play') {
+    return (
+      <svg {...props}>
+        <path d="M15.5 8.4c1.1.6 1.1 1.8 0 2.4l-6.2 3.6c-1.1.6-2-.1-2-1.2V6c0-1.2.9-1.8 2-1.2l6.2 3.6Z" fill="currentColor" />
+      </svg>
+    )
+  }
+
+  if (name === 'pause') {
+    return (
+      <svg {...props}>
+        <path d="M6.5 4.5h2.2v11H6.5v-11ZM11.3 4.5h2.2v11h-2.2v-11Z" fill="currentColor" />
+      </svg>
+    )
+  }
+
+  if (name === 'prev' || name === 'next') {
+    return (
+      <svg {...props} viewBox="0 0 38 38">
+        <path d={name === 'prev' ? 'M15.8 21.5c-1.1-.7-1.6-1-1.8-1.5-.2-.4-.2-.8 0-1.2.2-.4.7-.8 1.8-1.5l7.5-4.8c1.2-.8 1.8-1.2 2.4-1.2.4 0 .9.3 1.1.6.3.4.3 1.1.3 2.6v9.7c0 1.5 0 2.2-.3 2.6-.3.4-.7.6-1.1.6-.5 0-1.2-.4-2.4-1.2l-7.5-4.7Z' : 'M23.3 17.4c1.1.7 1.6 1 1.8 1.5.2.4.2.8 0 1.2-.2.4-.7.8-1.8 1.5l-7.5 4.8c-1.2.8-1.8 1.2-2.4 1.2-.4 0-.9-.3-1.1-.6-.3-.4-.3-1.1-.3-2.6v-9.7c0-1.5 0-2.2.3-2.6.3-.4.7-.6 1.1-.6.5 0 1.2.4 2.4 1.2l7.5 4.7Z'} fill="currentColor" />
+        <rect x={name === 'prev' ? '11.4' : '23.7'} y="10.5" width="3.1" height="17" rx="1.2" fill="currentColor" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...props}>
+      <path d="M10 19a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM10 5v10M7.5 6.7v6.6M12.5 6.7v6.6M5 8.4v3.2M15 8.4v3.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function inferTitle(record: GeneratedMusic): string {
+  const firstLyric = record.lyrics?.split('\n').map((line) => line.trim()).find(Boolean)
+  if (firstLyric) return firstLyric.slice(0, 16)
+  return record.prompt.slice(0, 16) || '未命名混曲'
+}
+
+function formatTime(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '00:00'
+  const minutes = Math.floor(value / 60)
+  const seconds = Math.floor(value % 60)
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function toWorkItem(record: GeneratedMusic, index: number, title?: string): WorkItem {
+  return {
+    ...record,
+    title: title?.trim() || inferTitle(record),
+    durationLabel: index % 2 === 0 ? '00:39' : '00:29',
+  }
+}
+
+function toRankWorkItem(song: Song, record: GeneratedMusic, index: number): WorkItem {
+  return {
+    ...record,
+    title: song.title,
+    prompt: song.artist,
+    durationLabel: index % 2 === 0 ? '00:39' : '00:29',
+    songId: song.id,
+  }
+}
+
+function toMissingMusicRankWorkItem(song: Song, index: number): WorkItem {
+  const now = new Date().toISOString()
+  return {
+    id: `missing-${song.id}`,
+    model: 'music-2.6',
+    prompt: song.artist,
+    lyrics: null,
+    source_audio_url: '',
+    music_url: '',
+    minio_bucket: '',
+    minio_object_name: '',
+    status: 'missing',
+    expires_at: now,
+    created_at: song.created_at,
+    title: song.title,
+    durationLabel: index % 2 === 0 ? '00:39' : '00:29',
+    songId: song.id,
+    missingMusic: true,
+  }
+}
+
+function createPendingWorkItem(id: string, prompt: string, title: string): WorkItem {
+  const now = new Date().toISOString()
+  return {
+    id,
+    model: 'music-2.6',
+    prompt,
+    lyrics: null,
+    source_audio_url: '',
+    music_url: '',
+    minio_bucket: '',
+    minio_object_name: '',
+    status: 'generating',
+    expires_at: now,
+    created_at: now,
+    title,
+    durationLabel: '生成中',
+    isPending: true,
+  }
+}
+
+function songLabel(song: Song): string {
+  return `${song.title} · ${song.artist}`
+}
+
+export default function MixInterfacePage() {
+  const [scale, setScale] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Math.min(1, window.innerWidth / DESIGN_WIDTH, window.innerHeight / DESIGN_HEIGHT)
+  })
+  const { songs, loading: loadingSongs, error: songsError, upsertSong } = useSongs()
+  const { classic } = useLeaderboards(songs)
+  const [selectedReferenceId, setSelectedReferenceId] = useState<string | null>(null)
+  const [selectedStyleId, setSelectedStyleId] = useState<string | null>(styleOptions[0].id)
+  const [customStyleOpen, setCustomStyleOpen] = useState(false)
+  const [customStyle, setCustomStyle] = useState('')
+  const [works, setWorks] = useState<WorkItem[]>([])
+  const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null)
+  const [loadingWorks, setLoadingWorks] = useState(true)
+  const [generating, setGenerating] = useState(false)
+  const [pushing, setPushing] = useState(false)
+  const [pushedWorkIds, setPushedWorkIds] = useState<Set<string>>(() => new Set())
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [playing, setPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const referenceScrollRef = useRef<HTMLDivElement | null>(null)
+  const customInputRef = useRef<HTMLInputElement | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
+  useEffect(() => {
+    let rafId = 0
+    const updateScale = () => {
+      rafId = 0
+      const nextScale = Math.min(1, window.innerWidth / DESIGN_WIDTH, window.innerHeight / DESIGN_HEIGHT)
+      setScale((prev) => (Math.abs(prev - nextScale) < 0.0005 ? prev : nextScale))
+    }
+    const handleResize = () => {
+      if (rafId !== 0) return
+      rafId = window.requestAnimationFrame(updateScale)
+    }
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (rafId !== 0) window.cancelAnimationFrame(rafId)
+    }
+  }, [])
+
+  const referenceSongs = classic
+  const selectedReference = useMemo(
+    () => (selectedReferenceId ? referenceSongs.find((song) => song.id === selectedReferenceId) ?? null : null),
+    [selectedReferenceId, referenceSongs],
+  )
+  const selectedStyle = useMemo(
+    () => styleOptions.find((style) => style.id === selectedStyleId) ?? styleOptions[0],
+    [selectedStyleId],
+  )
+  const generatedMusicById = useMemo(() => {
+    const map = new Map<string, GeneratedMusic>()
+    works.forEach((work) => {
+      if (!work.isPending) map.set(work.id, work)
+    })
+    return map
+  }, [works])
+  const aiSongs = useMemo(
+    () => [...songs.filter((song) => song.era === 'ai')].sort((a, b) => calcScore(b) - calcScore(a)),
+    [songs],
+  )
+  const aiRankWorks = useMemo(
+    () => aiSongs
+      .map((song, index) => {
+        if (!song.music_id) return toMissingMusicRankWorkItem(song, index)
+        const record = generatedMusicById.get(song.music_id)
+        if (!record) return toMissingMusicRankWorkItem(song, index)
+        return toRankWorkItem(song, record, index)
+      }),
+    [aiSongs, generatedMusicById],
+  )
+  const selectedWork = useMemo(
+    () => (selectedWorkId ? works.find((work) => work.id === selectedWorkId) ?? aiRankWorks.find((work) => work.songId === selectedWorkId || work.id === selectedWorkId) ?? null : null),
+    [aiRankWorks, selectedWorkId, works],
+  )
+  const progressPercent = duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
+  const selectedWorkPushed = selectedWork ? Boolean(selectedWork.songId) || pushedWorkIds.has(selectedWork.id) : false
+  const selectedReferenceAudioUnavailableReason = useMemo(() => {
+    if (!selectedReference) return '请先选择一首社区热门歌曲'
+    if (!selectedReference.music_id) return `《${selectedReference.title}》没有关联音频，无法作为AI混曲参考`
+    if (loadingWorks) return '参考音频信息还在加载中，请稍后再试'
+    if (!generatedMusicById.has(selectedReference.music_id)) return `《${selectedReference.title}》关联音频不存在或已过期，无法作为AI混曲参考`
+    return ''
+  }, [generatedMusicById, loadingWorks, selectedReference])
+
+  useEffect(() => {
+    if (!selectedReferenceId && referenceSongs.length > 0) setSelectedReferenceId(referenceSongs[0].id)
+  }, [referenceSongs, selectedReferenceId])
+
+  useEffect(() => {
+    if (!selectedReferenceId) return
+    const frameId = window.requestAnimationFrame(() => {
+      const container = referenceScrollRef.current
+      const target = Array.from(container?.querySelectorAll<HTMLElement>('.mix-reference-card') ?? [])
+        .find((element) => element.dataset.referenceId === selectedReferenceId)
+      if (!container || !target) return
+      const containerRect = container.getBoundingClientRect()
+      const targetRect = target.getBoundingClientRect()
+      const left = container.scrollLeft
+        + targetRect.left
+        - containerRect.left
+        - (containerRect.width - targetRect.width) / 2
+      container.scrollTo({
+        left,
+        behavior: 'smooth',
+      })
+    })
+    return () => window.cancelAnimationFrame(frameId)
+  }, [selectedReferenceId])
+
+  useEffect(() => {
+    if (!selectedWorkId && aiRankWorks.length > 0) setSelectedWorkId(aiRankWorks[0].songId ?? aiRankWorks[0].id)
+  }, [aiRankWorks, selectedWorkId])
+
+  useEffect(() => {
+    let stopped = false
+    void fetchGeneratedMusic()
+      .then((records) => {
+        if (stopped) return
+        const items = records.map((record, index) => toWorkItem(record, index))
+        setWorks(items)
+      })
+      .catch((err: unknown) => {
+        if (!stopped) setError(err instanceof Error ? err.message : 'AI混曲榜单加载失败')
+      })
+      .finally(() => {
+        if (!stopped) setLoadingWorks(false)
+      })
+    return () => {
+      stopped = true
+    }
+  }, [])
+
+  useEffect(() => {
+    setCurrentTime(0)
+    setDuration(0)
+    setPlaying(false)
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+  }, [selectedWorkId])
+
+  const scrollReferences = (direction: -1 | 1) => {
+    referenceScrollRef.current?.scrollBy({
+      left: direction * 235,
+      behavior: 'smooth',
+    })
+  }
+
+  const handleCustomStyleClick = () => {
+    setCustomStyleOpen(true)
+    setSelectedStyleId(null)
+    window.requestAnimationFrame(() => customInputRef.current?.focus())
+  }
+
+  const handleStyleSelect = (styleId: string) => {
+    setSelectedStyleId(styleId)
+    setCustomStyleOpen(false)
+  }
+
+  const handleGenerate = () => {
+    if (generating) return
+    if (selectedReferenceAudioUnavailableReason) {
+      setError(selectedReferenceAudioUnavailableReason)
+      return
+    }
+    if (!selectedReference?.music_id) return
+    const stylePrompt = (customStyleOpen && customStyle.trim() ? customStyle.trim() : selectedStyle.prompt).slice(0, 360)
+    const prompt = `参考《${selectedReference.title}》生成${stylePrompt}风格AI混曲，适合现场播放和榜单展示。`.slice(0, 300)
+    const title = `${selectedReference.title} AI混曲`
+    const pendingId = `pending-${Date.now()}`
+
+    setGenerating(true)
+    setError('')
+    setMessage('AI混曲生成中...')
+    setWorks((prev) => [createPendingWorkItem(pendingId, prompt, title), ...prev])
+
+    void generateMusic({
+      model: 'music-cover',
+      prompt,
+      reference_music_id: selectedReference.music_id,
+    })
+      .then((record) => {
+        const item = toWorkItem(record, works.length, title)
+        setWorks((prev) => prev.map((work) => (work.id === pendingId ? item : work)))
+        setSelectedWorkId(item.id)
+        setMessage('AI混曲已生成')
+      })
+      .catch((err: unknown) => {
+        setWorks((prev) => prev.filter((work) => work.id !== pendingId))
+        setError(err instanceof Error ? err.message : '生成失败')
+        setMessage('')
+      })
+      .finally(() => {
+        setGenerating(false)
+      })
+  }
+
+  const handleWorkSelect = (work: WorkItem) => {
+    if (work.isPending) return
+    if (work.missingMusic || !work.music_url) {
+      setSelectedWorkId(work.songId ?? work.id)
+      setPlaying(false)
+      setError('这首AI混曲缺少关联音乐，无法播放')
+      return
+    }
+    setSelectedWorkId(work.songId ?? work.id)
+    setMessage('已切换到底部进度条')
+  }
+
+  const togglePlay = () => {
+    const audio = audioRef.current
+    if (!audio || !selectedWork || selectedWork.isPending || !selectedWork.music_url) return
+
+    if (audio.paused) {
+      void audio.play().then(() => setPlaying(true)).catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : '播放失败')
+      })
+      return
+    }
+
+    audio.pause()
+    setPlaying(false)
+  }
+
+  const handleSeek = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.target.value)
+    setCurrentTime(nextTime)
+    if (audioRef.current) audioRef.current.currentTime = nextTime
+  }
+
+  const selectAdjacentWork = (direction: -1 | 1) => {
+    if (!selectedWork || aiRankWorks.length === 0) return
+    const playableWorks = aiRankWorks.filter((work) => !work.isPending)
+    const currentIndex = playableWorks.findIndex((work) => work.id === selectedWork.id)
+    if (currentIndex < 0) return
+    const next = playableWorks[(currentIndex + direction + playableWorks.length) % playableWorks.length]
+    if (next) handleWorkSelect(next)
+  }
+
+  const handlePushToRanking = () => {
+    if (!selectedWork || selectedWork.isPending || selectedWorkPushed || pushing) return
+    setPushing(true)
+    setError('')
+    void insertSong({
+      title: selectedWork.title,
+      music_id: selectedWork.id,
+      artist: 'AI混曲',
+      era: 'ai',
+    })
+      .then((song) => {
+        upsertSong(song)
+        setPushedWorkIds((prev) => new Set(prev).add(selectedWork.id))
+        setSelectedWorkId(song.id)
+        setMessage('已推入AI混曲榜单')
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : '推榜失败')
+      })
+      .finally(() => setPushing(false))
+  }
+
+  return (
+    <main className="mix-page">
+      <div className="mix-scaler" style={{ height: DESIGN_HEIGHT * scale }}>
+        <section className="mix-canvas" style={{ transform: `translateX(-50%) scale(${scale})` }}>
+          <img src="/dashboard-background.png" className="mix-dashboard-bg" alt="" aria-hidden />
+          <div className="mix-bg-wash" />
+
+          <header className="mix-header mix-header-primary">
+            <img src={headerLeftPanel} className="mix-layer-img" alt="" aria-hidden />
+            <span className="mix-title-icon mix-title-icon-primary" aria-hidden dangerouslySetInnerHTML={{ __html: headerLeftIcon }} />
+            <button className="mix-home-button" type="button" onClick={() => window.location.assign('?mode=home')} aria-label="返回主页">
+              <img src={backArrow} alt="" aria-hidden />
+            </button>
+            <div className="mix-title-copy">
+              <span>代际知音</span>
+              <span className="mix-title-separator">–</span>
+              <strong>AI混曲</strong>
+            </div>
+          </header>
+
+          <header className="mix-header mix-header-ranking">
+            <img src={headerRightPanel} className="mix-layer-img" alt="" aria-hidden />
+            <img src={headerRightIcon} className="mix-title-icon mix-title-icon-ranking" alt="" aria-hidden />
+            <div className="mix-title-copy mix-title-copy-right">
+              <strong>AI混曲榜单</strong>
+            </div>
+          </header>
+
+          <section className="mix-reference-section" aria-label="选择社区热门歌曲">
+            <img src={topCapsule} className="mix-section-title-bg" alt="" aria-hidden />
+            <div className="mix-section-title mix-section-title-reference">第一步：选择社区热门歌曲</div>
+            <img src={selectorPanel} className="mix-section-panel" alt="" aria-hidden />
+            <button className="mix-scroll-control mix-scroll-control-left" type="button" onClick={() => scrollReferences(-1)} aria-label="向左查看社区热门歌曲">
+              <img src={selectorChevron} alt="" aria-hidden />
+            </button>
+            <div className="mix-reference-list" ref={referenceScrollRef}>
+              {loadingSongs && <div className="mix-empty-card">加载榜单中...</div>}
+              {!loadingSongs && referenceSongs.length === 0 && <div className="mix-empty-card">暂无社区热门歌曲</div>}
+              {referenceSongs.map((song, index) => {
+                const selected = selectedReference?.id === song.id
+                const option = styleOptions[index % styleOptions.length]
+                return (
+                  <button
+                    className={`mix-reference-card${selected ? ' is-selected' : ''}`}
+                    type="button"
+                    key={song.id}
+                    data-reference-id={song.id}
+                    onClick={() => setSelectedReferenceId(song.id)}
+                  >
+                    <img src={option.icon} className="mix-reference-record" alt="" aria-hidden />
+                    <span className="mix-reference-rank">TOP {index + 1}</span>
+                    <span className="mix-reference-label">
+                      <img src={option.label} alt="" aria-hidden />
+                      <strong>{song.title}</strong>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            <button className="mix-scroll-control mix-scroll-control-right" type="button" onClick={() => scrollReferences(1)} aria-label="向右查看社区热门歌曲">
+              <img src={selectorChevron} alt="" aria-hidden />
+            </button>
+          </section>
+
+          <section className="mix-style-section" aria-label="选择风格">
+            <img src={bottomCapsule} className="mix-style-title-bg" alt="" aria-hidden />
+            <div className="mix-section-title mix-section-title-style">第二步：选择风格</div>
+            <img src={formPanel} className="mix-style-panel" alt="" aria-hidden />
+            <div className="mix-style-options">
+              {styleOptions.map((style) => (
+                <button
+                  className={`mix-style-card${selectedStyleId === style.id ? ' is-selected' : ''}`}
+                  type="button"
+                  key={style.id}
+                  onClick={() => handleStyleSelect(style.id)}
+                >
+                  <img src={style.card} className="mix-style-card-bg" alt="" aria-hidden />
+                  <span className="mix-style-card-title">
+                    <strong>{style.title}</strong>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="mix-style-actions">
+              <div
+                className={`mix-custom-style-btn${customStyleOpen ? ' is-open' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={handleCustomStyleClick}
+                onMouseDown={(event) => {
+                  if (event.target !== customInputRef.current) handleCustomStyleClick()
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') handleCustomStyleClick()
+                }}
+              >
+                <img src={secondaryCapsule} alt="" aria-hidden />
+                {customStyleOpen ? (
+                  <input
+                    ref={customInputRef}
+                    value={customStyle}
+                    onChange={(event) => {
+                      setSelectedStyleId(null)
+                      setCustomStyle(event.target.value.slice(0, 300))
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                    placeholder="输入自定义风格"
+                  />
+                ) : (
+                  <span>自定义风格</span>
+                )}
+              </div>
+              <button className="mix-generate-mix-btn" type="button" onClick={handleGenerate} disabled={generating}>
+                <img src={primaryCapsule} alt="" aria-hidden />
+                <span>{generating ? '生成中...' : '生成混曲'}</span>
+              </button>
+            </div>
+          </section>
+
+          <aside className="mix-ranking-section" aria-label="AI混曲榜单">
+            <svg className="mix-ranking-panel" viewBox="0 0 495 708" fill="none" aria-hidden>
+              <image href={rankingPanel} x="0" y="0" width="495" height="708" />
+              <text className="mix-ranking-svg-title" x="73" y="107">AI共创歌曲榜单</text>
+            </svg>
+            <div className="mix-ranking-list">
+              {(loadingWorks || loadingSongs) && <div className="mix-ranking-empty">加载AI混曲榜单中...</div>}
+              {!loadingWorks && !loadingSongs && aiRankWorks.length === 0 && <div className="mix-ranking-empty">暂无AI混曲，先生成一首吧</div>}
+              {aiRankWorks.map((work, index) => {
+                const selected = selectedWork?.id === work.id
+                return (
+                  <button
+                    className={`mix-ranking-row${selected ? ' is-selected' : ''}${work.isPending ? ' is-pending' : ''}`}
+                    type="button"
+                    key={work.songId ?? work.id}
+                    onClick={() => handleWorkSelect(work)}
+                    disabled={work.isPending}
+                  >
+                    <span className="mix-ranking-play"><img src={playIcon} alt="" aria-hidden /></span>
+                    <span className="mix-ranking-meta">
+                      <strong>{work.title}</strong>
+                      <small>{work.isPending ? 'AI正在生成音乐...' : work.missingMusic ? '缺少关联音乐，无法播放' : work.prompt}</small>
+                    </span>
+                    <span className="mix-ranking-tag">{work.isPending ? 'WAIT' : work.missingMusic ? 'MISS' : `NO.${index + 1}`}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </aside>
+
+          <footer className="mix-footer">
+            <img src={footerPanel} className="mix-footer-panel" alt="" aria-hidden />
+            <div className="mix-footer-current">
+              <img src={footerIcon} alt="" aria-hidden />
+              <div>
+                <strong>{selectedWork?.title ?? selectedReference?.title ?? '等待选择混曲'}</strong>
+                <span>{selectedWork ? selectedWork.prompt : selectedReference ? songLabel(selectedReference) : '选择右侧AI混曲后，进度条会自动切换'}</span>
+              </div>
+            </div>
+            <div className="mix-footer-player">
+              <button type="button" onClick={() => selectAdjacentWork(-1)} disabled={!selectedWork} aria-label="上一首"><Icon name="prev" /></button>
+              <button className="mix-footer-play" type="button" onClick={togglePlay} disabled={!selectedWork?.music_url} aria-label={playing ? '暂停' : '播放'}>
+                <Icon name={playing ? 'pause' : 'play'} />
+              </button>
+              <button type="button" onClick={() => selectAdjacentWork(1)} disabled={!selectedWork} aria-label="下一首"><Icon name="next" /></button>
+              <span>{formatTime(currentTime)}</span>
+              <input
+                className="mix-footer-range"
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={Math.min(currentTime, duration || 0)}
+                onChange={handleSeek}
+                disabled={!duration}
+                style={{ '--mix-progress': `${progressPercent}%` } as CSSProperties}
+              />
+              <span>{formatTime(duration)}</span>
+            </div>
+            <button className="mix-push-button" type="button" onClick={handlePushToRanking} disabled={!selectedWork || selectedWork.isPending || selectedWorkPushed || pushing}>
+              <img src={pushCapsule} alt="" aria-hidden />
+              <span>{selectedWorkPushed ? '已推榜' : pushing ? '推榜中' : '推榜'}</span>
+            </button>
+          </footer>
+
+          <div className="mix-ai-disclaimer">此音乐内容由AI生成，不作任何商用途径，重要信息务必核查。</div>
+
+          {(error || songsError || message) && (
+            <div className={`mix-status${error || songsError ? ' is-error' : ''}`}>
+              {error || songsError || message}
+            </div>
+          )}
+
+          <audio
+            ref={audioRef}
+            src={selectedWork?.music_url || undefined}
+            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+            onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+            onEnded={() => setPlaying(false)}
+          />
+        </section>
+      </div>
+    </main>
+  )
+}

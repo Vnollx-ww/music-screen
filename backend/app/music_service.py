@@ -23,7 +23,7 @@ AUDIO_EXTENSIONS = (".mp3", ".wav", ".m4a", ".flac", ".aac", ".ogg")
 
 def generate_music(db: Session, payload: GenerateMusicRequest) -> GeneratedMusic:
     settings = get_settings()
-    minimax_payload = _build_minimax_payload(payload)
+    minimax_payload, lyrics = _build_minimax_payload(db, payload)
     raw_response = _request_minimax_music(settings, minimax_payload)
     source_audio_url = _extract_audio_url(raw_response)
     record_id = str(uuid4())
@@ -34,7 +34,7 @@ def generate_music(db: Session, payload: GenerateMusicRequest) -> GeneratedMusic
         id=record_id,
         model=payload.model,
         prompt=payload.prompt,
-        lyrics=payload.lyrics,
+        lyrics=lyrics,
         source_audio_url=source_audio_url,
         minio_bucket=settings.minio_bucket,
         minio_object_name=object_name,
@@ -43,7 +43,7 @@ def generate_music(db: Session, payload: GenerateMusicRequest) -> GeneratedMusic
         status="ready",
         raw_response=raw_response,
         created_at=now,
-        expires_at=now + timedelta(days=settings.generated_music_ttl_days),
+        expires_at=now + timedelta(days=3650),
     )
 
     try:
@@ -84,17 +84,16 @@ def get_generated_music(db: Session, music_id: str) -> GeneratedMusic:
     record = db.get(GeneratedMusic, music_id)
     if record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="生成音乐不存在")
-    if record.status != "ready" or record.expires_at <= datetime.now():
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="生成音乐已过期")
+    if record.status != "ready":
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="生成音乐不可用")
     return record
 
 
 def list_generated_music(db: Session) -> list[GeneratedMusic]:
-    now = datetime.now()
     return list(
         db.scalars(
             select(GeneratedMusic)
-            .where(GeneratedMusic.status == "ready", GeneratedMusic.expires_at > now)
+            .where(GeneratedMusic.status == "ready")
             .order_by(GeneratedMusic.created_at.desc())
         )
     )
@@ -116,36 +115,31 @@ def build_generated_music_out(record: GeneratedMusic) -> GeneratedMusicOut:
     )
 
 
-def expire_generated_music(db: Session) -> int:
-    settings = get_settings()
-    now = datetime.now()
-    records = list(
-        db.scalars(
-            select(GeneratedMusic)
-            .where(GeneratedMusic.status == "ready", GeneratedMusic.expires_at <= now)
-            .order_by(GeneratedMusic.expires_at.asc())
-            .limit(settings.generated_music_cleanup_batch_size)
+def _build_minimax_payload(db: Session, payload: GenerateMusicRequest) -> tuple[dict[str, Any], str | None]:
+    cover_feature_id = payload.cover_feature_id
+    lyrics = payload.lyrics
+
+    if payload.reference_music_id is not None:
+        try:
+            reference_record = get_generated_music(db, payload.reference_music_id)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="所选热门歌曲的关联音频不存在，无法生成AI混曲") from exc
+            if exc.status_code == status.HTTP_410_GONE:
+                raise HTTPException(status_code=status.HTTP_410_GONE, detail="所选热门歌曲的关联音频不可用，无法生成AI混曲") from exc
+            raise
+        preprocess_result = preprocess_music_cover(
+            MusicCoverPreprocessRequest(audio_url=_presigned_music_url(reference_record))
         )
-    )
-    if not records:
-        return 0
+        cover_feature_id = preprocess_result.cover_feature_id
+        lyrics = lyrics or preprocess_result.formatted_lyrics
 
-    expired_count = 0
-    for record in records:
-        if _remove_minio_object_safely(settings, record.minio_bucket, record.minio_object_name):
-            record.status = "expired"
-            record.deleted_at = now
-            expired_count += 1
+    if cover_feature_id is not None and not lyrics:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="翻唱前处理未返回歌词，无法生成翻唱音乐")
 
-    try:
-        db.commit()
-        return expired_count
-    except Exception:
-        db.rollback()
-        raise
+    if lyrics is not None:
+        lyrics = lyrics[:1000]
 
-
-def _build_minimax_payload(payload: GenerateMusicRequest) -> dict[str, Any]:
     request_payload: dict[str, Any] = {
         "model": payload.model,
         "prompt": payload.prompt,
@@ -153,17 +147,17 @@ def _build_minimax_payload(payload: GenerateMusicRequest) -> dict[str, Any]:
         "output_format": payload.output_format,
     }
     optional_fields = {
-        "lyrics": payload.lyrics,
+        "lyrics": lyrics,
         "lyrics_optimizer": payload.lyrics_optimizer,
         "is_instrumental": payload.is_instrumental,
         "audio_url": payload.audio_url,
         "audio_base64": payload.audio_base64,
-        "cover_feature_id": payload.cover_feature_id,
+        "cover_feature_id": cover_feature_id,
     }
     for key, value in optional_fields.items():
         if value is not None:
             request_payload[key] = value
-    return request_payload
+    return request_payload, lyrics
 
 
 def _request_minimax_music(settings: Settings, payload: dict[str, Any]) -> dict[str, Any]:
@@ -283,13 +277,11 @@ def _upload_music_from_url(settings: Settings, source_audio_url: str, object_nam
 def _presigned_music_url(record: GeneratedMusic) -> str:
     settings = get_settings()
     client = _get_minio_client(settings)
-    remaining_seconds = int((record.expires_at - datetime.now()).total_seconds())
-    expires_seconds = max(1, min(remaining_seconds, MAX_PRESIGNED_EXPIRY_SECONDS))
     try:
         return client.presigned_get_object(
             record.minio_bucket,
             record.minio_object_name,
-            expires=timedelta(seconds=expires_seconds),
+            expires=timedelta(seconds=MAX_PRESIGNED_EXPIRY_SECONDS),
         )
     except S3Error as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"生成 MinIO 访问链接失败：{exc.code}") from exc

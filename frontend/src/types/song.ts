@@ -2,6 +2,7 @@ export type Era = 'vinyl' | 'tape' | 'cd' | 'digital' | 'ai'
 
 export interface Song {
   id: string
+  music_id: string | null
   title: string
   artist: string
   era: Era
@@ -13,6 +14,7 @@ export interface Song {
 
 export interface SongRow {
   id: string
+  music_id: string | null
   title: string | null
   artist: string | null
   era: string | null
@@ -24,6 +26,7 @@ export interface SongRow {
 
 export interface CreateSongInput {
   title: string
+  music_id?: string
   artist?: string
   era: Era
 }

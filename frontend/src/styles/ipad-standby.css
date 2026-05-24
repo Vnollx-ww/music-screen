@@ -1,0 +1,84 @@
+.ipad-standby-page {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #05030d;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ipad-standby-canvas {
+  position: relative;
+  width: min(100vw, calc(100vh * 1366 / 1024));
+  height: min(100vh, calc(100vw * 1024 / 1366));
+  aspect-ratio: 1366 / 1024;
+  overflow: hidden;
+}
+
+.ipad-standby-bg,
+.ipad-standby-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ipad-standby-bg {
+  z-index: 0;
+  object-fit: fill;
+}
+
+.ipad-standby-svg {
+  z-index: 1;
+  pointer-events: none;
+}
+
+.ipad-standby-svg svg {
+  width: 100%;
+  height: 100%;
+  animation: ipadStandbyNoteBounce 1.45s ease-in-out infinite;
+  filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.22));
+  will-change: transform;
+}
+
+.ipad-standby-copy {
+  position: absolute;
+  left: 50%;
+  top: 59%;
+  z-index: 2;
+  display: flex;
+  transform: translateX(-50%);
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+  font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-size: clamp(25px, 3.2vw, 44px);
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  line-height: 1.12;
+  text-align: center;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.42), 0 0 18px rgba(41, 231, 229, 0.3);
+  white-space: nowrap;
+}
+
+.ipad-standby-copy span:last-child {
+  font-size: clamp(22px, 2.8vw, 38px);
+  color: #fff;
+  text-shadow: 0 8px 24px rgba(0, 0, 0, 0.42), 0 0 18px rgba(41, 231, 229, 0.3);
+}
+
+@keyframes ipadStandbyNoteBounce {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -22px, 0);
+  }
+}

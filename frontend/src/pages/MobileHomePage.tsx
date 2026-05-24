@@ -28,7 +28,7 @@ export default function MobileHomePage() {
             <span className="mh-action-title">歌曲推榜</span>
           </a>
 
-          <a href="?mode=create" className="mh-action mh-action-ai">
+          <a href="?mode=standby" className="mh-action mh-action-ai">
             <span className="mh-action-title">AI共创混曲</span>
           </a>
         </div>

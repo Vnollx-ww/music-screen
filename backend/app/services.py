@@ -6,7 +6,7 @@ from fastapi import HTTPException, Request, status
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
-from .models import Song, SongVoteIpLimit
+from .models import GeneratedMusic, Song, SongVoteIpLimit
 from .schemas import CreateSongRequest
 from .settings import get_settings
 
@@ -16,8 +16,12 @@ def list_songs(db: Session) -> list[Song]:
 
 
 def create_song(db: Session, payload: CreateSongRequest) -> Song:
+    if payload.music_id is not None and db.get(GeneratedMusic, payload.music_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="生成音乐不存在")
+
     song = Song(
         id=str(uuid4()),
+        music_id=payload.music_id,
         title=payload.title,
         artist=payload.artist,
         era=payload.era.value,

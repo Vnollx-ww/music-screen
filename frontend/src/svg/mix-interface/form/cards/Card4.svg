@@ -1,0 +1,23 @@
+<svg width="247.431" height="190.695" viewBox="607.557 530.93 247.431 190.695" fill="none" xmlns="http://www.w3.org/2000/svg">
+<foreignObject x="607.557" y="530.93" width="247.431" height="190.695"><div xmlns="http://www.w3.org/1999/xhtml" style="backdrop-filter:blur(2.15px);clip-path:url(#bgblur_6_517_5148_clip_path);height:100%;width:100%"></div></foreignObject><g filter="url(#filter5_d_517_5148)" data-figma-bg-blur-radius="4.3">
+<path d="M654.557 622.93C654.557 608.57 666.197 596.93 680.557 596.93L781.988 596.93C796.347 596.93 807.988 608.57 807.988 622.93L807.988 645.278L807.988 666.625C807.988 681.537 795.899 693.625 780.988 693.625L681.557 693.625C666.645 693.625 654.557 681.537 654.557 666.625L654.557 622.93Z" fill="#262525" fill-opacity="0.67"/>
+<path d="M680.557 597.43L781.987 597.43C796.071 597.43 807.487 608.846 807.487 622.93L807.487 666.625C807.487 681.261 795.623 693.125 780.987 693.125L681.557 693.125C666.921 693.125 655.057 681.261 655.057 666.625L655.057 622.93C655.057 608.846 666.473 597.43 680.557 597.43Z" stroke="url(#paint6_linear_517_5148)"/>
+</g>
+<defs>
+<filter id="filter5_d_517_5148" x="607.557" y="530.93" width="247.431" height="190.695" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="-19"/>
+<feGaussianBlur stdDeviation="23.5"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_517_5148"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_517_5148" result="shape"/>
+</filter>
+<clipPath id="bgblur_6_517_5148_clip_path" transform="translate(-607.557 -530.93)"><path d="M654.557 622.93C654.557 608.57 666.197 596.93 680.557 596.93L781.988 596.93C796.347 596.93 807.988 608.57 807.988 622.93L807.988 645.278L807.988 666.625C807.988 681.537 795.899 693.625 780.988 693.625L681.557 693.625C666.645 693.625 654.557 681.537 654.557 666.625L654.557 622.93Z"/>
+</clipPath>
+<linearGradient id="paint6_linear_517_5148" x1="807.988" y1="645.278" x2="654.557" y2="645.278" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E39FD0"/>
+<stop offset="1" stop-color="#29E7E5"/>
+</linearGradient>
+</defs>
+</svg>

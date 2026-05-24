@@ -5,6 +5,7 @@ import type { Song, SongRow, CreateSongInput } from '../types/song'
 export function normalizeSongRow(row: SongRow): Song {
   return {
     id: row.id,
+    music_id: row.music_id?.trim() || null,
     title: row.title?.trim() || '未命名歌曲',
     artist: row.artist?.trim() || '匿名创作者',
     era: normalizeEra(row.era),
@@ -29,6 +30,7 @@ export async function insertSong(input: CreateSongInput): Promise<Song> {
     method: 'POST',
     body: JSON.stringify({
       title: input.title.trim(),
+      music_id: input.music_id?.trim() || undefined,
       artist: input.artist?.trim() || '匿名投稿',
       era: input.era,
     }),

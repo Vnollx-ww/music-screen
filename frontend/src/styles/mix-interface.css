@@ -81,11 +81,13 @@
 .mix-header {
   position: absolute;
   z-index: 2;
+  pointer-events: none;
 }
 
 .mix-header-primary {
   left: 9px;
   top: 16px;
+  z-index: 8;
   width: 554px;
   height: 174px;
 }
@@ -98,7 +100,13 @@
 }
 
 .mix-header-primary > .mix-layer-img {
-  transform: translateX(170px);
+  transform: translate(170px, 4px);
+}
+
+.mix-header-panel-svg svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .mix-title-icon {
@@ -111,7 +119,7 @@
 
 .mix-title-icon-primary {
   left: 258px;
-  top: 74px;
+  top: 78px;
   width: 68px;
   height: 64px;
 }
@@ -125,16 +133,18 @@
 
 .mix-home-button {
   position: absolute;
-  z-index: 5;
-  left: 42px;
-  top: 66px;
+  z-index: 20;
+  left: 30px;
+  top: 58px;
   display: grid;
-  width: 86px;
-  height: 81px;
+  width: 110px;
+  height: 105px;
   cursor: pointer;
   place-items: center;
   background: transparent;
   padding: 0;
+  pointer-events: auto;
+  touch-action: manipulation;
   color: rgba(255, 255, 255, 0.92);
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
@@ -162,7 +172,7 @@
   position: absolute;
   z-index: 3;
   left: 330px;
-  top: 88px;
+  top: 92px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -469,15 +479,13 @@
 }
 
 .mix-style-card.is-selected {
-  filter:
-    drop-shadow(0 0 16px rgba(252, 175, 228, 0.65))
-    drop-shadow(0 0 30px rgba(41, 231, 229, 0.35));
+  filter: drop-shadow(0 0 30px rgba(41, 231, 229, 0.35));
   transform: translateY(-6px) scale(1.04);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .mix-style-card:hover:not(.is-selected) {
-    filter: drop-shadow(0 0 18px rgba(252, 175, 228, 0.2));
+    filter: drop-shadow(0 0 18px rgba(41, 231, 229, 0.2));
     transform: translateY(-3px);
   }
 }
@@ -670,16 +678,22 @@
 }
 
 .mix-ranking-play {
-  display: grid;
+  position: relative;
+  display: block;
   width: 47px;
   height: 49px;
   flex: 0 0 47px;
-  place-items: center;
+  overflow: hidden;
 }
 
 .mix-ranking-play img {
-  width: 47px;
-  height: 49px;
+  position: absolute;
+  left: -40.7px;
+  top: -31.75px;
+  width: 189px;
+  height: 109px;
+  max-width: none;
+  pointer-events: none;
 }
 
 .mix-ranking-meta {

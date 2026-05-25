@@ -6,9 +6,9 @@ import { fetchGeneratedMusic, generateMusic } from '../lib/music'
 import type { GeneratedMusic } from '../lib/music'
 import { calcScore, insertSong } from '../lib/songs'
 import type { Song } from '../types/song'
-import headerLeftPanel from '../svg/mix-interface/header/left/panels/HeaderPanel.svg'
+import headerLeftPanelRaw from '../svg/mix-interface/header/left/panels/HeaderPanel.svg?raw'
 import headerLeftIconRaw from '../svg/mix-interface/header/left/icons/MusicNoteLogo.svg?raw'
-import headerRightPanel from '../svg/mix-interface/header/right/panels/HeaderPanel.svg'
+import headerRightPanelRaw from '../svg/mix-interface/header/right/panels/HeaderPanel.svg?raw'
 import headerRightIcon from '../svg/mix-interface/header/right/icons/BlendBubbles.svg'
 import topCapsule from '../svg/mix-interface/selector/capsules/TopBlackCapsule.svg'
 import selectorPanel from '../svg/mix-interface/selector/panels/RecordsPanel.svg'
@@ -30,7 +30,7 @@ import styleCard4 from '../svg/mix-interface/form/cards/Card4.svg'
 import secondaryCapsule from '../svg/mix-interface/form/capsules/SecondaryBlackCapsule.svg'
 import primaryCapsule from '../svg/mix-interface/form/capsules/PrimaryGradientCapsule.svg'
 import rankingPanel from '../svg/mix-interface/ranking/panels/RankingPanel.svg'
-import playIcon from '../svg/mix-interface/ranking/icons/Play1.svg'
+import ipadIcon from '../svg/ipad.svg'
 import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
 import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
 import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
@@ -50,8 +50,17 @@ type MixIconName = 'play' | 'pause' | 'prev' | 'next' | 'wave'
 const DESIGN_WIDTH = 1366
 const DESIGN_HEIGHT = 1014
 const SONG_TITLE_MAX_CHARS = 5
+const RANKING_SONG_TITLE_MAX_CHARS = 7
 const MIX_INACTIVITY_TIMEOUT_MS = 60 * 1000
 const headerLeftIcon = headerLeftIconRaw.replace('viewBox="100 98 50 43"', 'viewBox="96 96 56 52"')
+const headerLeftPanel = headerLeftPanelRaw
+  .split('M56 108C56 93.6406 67.6406 82 82 82H490C504.359 82 516 93.6406 516 108V122V135C516 149.912 503.912 162 489 162H83.0001C68.0884 162 56 149.912 56 135V108Z')
+  .join('M96 82H476C498.091 82 516 99.9086 516 122C516 144.091 498.091 162 476 162H96C73.9086 162 56 144.091 56 122C56 99.9086 73.9086 82 96 82Z')
+  .replace('M82 82.5H490C504.083 82.5 515.5 93.9167 515.5 108V135C515.5 149.636 503.636 161.5 489 161.5H83C68.3645 161.5 56.5 149.636 56.5 135V108C56.5 93.9167 67.9168 82.5 82 82.5Z', 'M96 82.5H476C497.815 82.5 515.5 100.185 515.5 122C515.5 143.815 497.815 161.5 476 161.5H96C74.1848 161.5 56.5 143.815 56.5 122C56.5 100.185 74.1848 82.5 96 82.5Z')
+const headerRightPanel = headerRightPanelRaw
+  .split('M898 112C898 97.6406 909.641 86 924 86H1273C1287.36 86 1299 97.6406 1299 112V126V139C1299 153.912 1286.91 166 1272 166H925C910.088 166 898 153.912 898 139V112Z')
+  .join('M938 86H1259C1281.09 86 1299 103.909 1299 126C1299 148.091 1281.09 166 1259 166H938C915.909 166 898 148.091 898 126C898 103.909 915.909 86 938 86Z')
+  .replace('M924 86.5H1273C1287.08 86.5 1298.5 97.9167 1298.5 112V139C1298.5 153.636 1286.64 165.5 1272 165.5H925C910.364 165.5 898.5 153.636 898.5 139V112C898.5 97.9167 909.917 86.5 924 86.5Z', 'M938 86.5H1259C1280.82 86.5 1298.5 104.185 1298.5 126C1298.5 147.815 1280.82 165.5 1259 165.5H938C916.185 165.5 898.5 147.815 898.5 126C898.5 104.185 916.185 86.5 938 86.5Z')
 
 const coverImages = [
   'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582227642792971-other_42.png',
@@ -106,7 +115,7 @@ function Icon({ name, className }: { name: MixIconName; className?: string }) {
   if (name === 'play') {
     return (
       <svg {...props} viewBox="964.5 291.474 16.5 19.052">
-        <path d="M981 301L964.5 310.526L964.5 291.474L981 301Z" fill="currentColor" />
+        <path d="M979.86 299.02C981.39 299.9 981.39 302.1 979.86 302.98L967.93 309.87C966.4 310.75 964.5 309.65 964.5 307.89V294.11C964.5 292.35 966.4 291.25 967.93 292.13L979.86 299.02Z" fill="currentColor" />
       </svg>
     )
   }
@@ -156,6 +165,16 @@ function getDisplaySongTitle(title: string): string {
 
 function isSongTitleTruncated(title: string): boolean {
   return Array.from(title).length > SONG_TITLE_MAX_CHARS
+}
+
+function getDisplayRankingSongTitle(title: string): string {
+  const chars = Array.from(title)
+  if (chars.length <= RANKING_SONG_TITLE_MAX_CHARS) return title
+  return `${chars.slice(0, RANKING_SONG_TITLE_MAX_CHARS).join('')}…`
+}
+
+function isRankingSongTitleTruncated(title: string): boolean {
+  return Array.from(title).length > RANKING_SONG_TITLE_MAX_CHARS
 }
 
 function toWorkItem(record: GeneratedMusic, index: number, title?: string): WorkItem {
@@ -575,6 +594,30 @@ export default function MixInterfacePage() {
     )
   }
 
+  const renderRankingSongTitle = (title: string) => {
+    const truncated = isRankingSongTitleTruncated(title)
+    return (
+      <strong
+        className={`mix-song-title${truncated ? ' is-truncated' : ''}`}
+        onMouseEnter={truncated ? (event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          const canvas = event.currentTarget.closest('.mix-canvas')
+          if (!(canvas instanceof HTMLElement)) return
+          const canvasRect = canvas.getBoundingClientRect()
+          const currentScale = scale || 1
+          setSongTitleTooltip({
+            text: title,
+            left: (rect.left + rect.width / 2 - canvasRect.left) / currentScale,
+            top: (rect.top - canvasRect.top) / currentScale,
+          })
+        } : undefined}
+        onMouseLeave={truncated ? () => setSongTitleTooltip(null) : undefined}
+      >
+        {getDisplayRankingSongTitle(title)}
+      </strong>
+    )
+  }
+
   const footerCurrentTitle = selectedWork?.title ?? selectedReference?.title
 
   return (
@@ -585,7 +628,7 @@ export default function MixInterfacePage() {
           <div className="mix-bg-wash" />
 
           <header className="mix-header mix-header-primary">
-            <img src={headerLeftPanel} className="mix-layer-img" alt="" aria-hidden />
+            <span className="mix-layer-img mix-header-panel-svg" aria-hidden dangerouslySetInnerHTML={{ __html: headerLeftPanel }} />
             <span className="mix-title-icon mix-title-icon-primary" aria-hidden dangerouslySetInnerHTML={{ __html: headerLeftIcon }} />
             <button className="mix-home-button" type="button" onClick={() => window.location.assign('?mode=home')} aria-label="返回主页">
               <img src={backArrow} alt="" aria-hidden />
@@ -598,7 +641,7 @@ export default function MixInterfacePage() {
           </header>
 
           <header className="mix-header mix-header-ranking">
-            <img src={headerRightPanel} className="mix-layer-img" alt="" aria-hidden />
+            <span className="mix-layer-img mix-header-panel-svg" aria-hidden dangerouslySetInnerHTML={{ __html: headerRightPanel }} />
             <img src={headerRightIcon} className="mix-title-icon mix-title-icon-ranking" alt="" aria-hidden />
             <div className="mix-title-copy mix-title-copy-right">
               <strong>AI共创榜单</strong>
@@ -699,7 +742,7 @@ export default function MixInterfacePage() {
           <aside className="mix-ranking-section" aria-label="AI混曲榜单">
             <svg className="mix-ranking-panel" viewBox="0 0 495 708" fill="none" aria-hidden>
               <image href={rankingPanel} x="0" y="0" width="495" height="708" />
-              <text className="mix-ranking-svg-title" x="73" y="107">欢迎收听</text>
+              <text className="mix-ranking-svg-title" x="73" y="107">欢迎收听！</text>
             </svg>
             <div className="mix-ranking-list">
               {(loadingWorks || loadingSongs) && aiRankWorks.length === 0 && <div className="mix-ranking-empty">加载AI混曲榜单中...</div>}
@@ -714,9 +757,9 @@ export default function MixInterfacePage() {
                     onClick={() => handleWorkSelect(work)}
                     disabled={work.isPending}
                   >
-                    <span className="mix-ranking-play"><img src={playIcon} alt="" aria-hidden /></span>
+                    <span className="mix-ranking-play"><img src={ipadIcon} alt="" aria-hidden /></span>
                     <span className="mix-ranking-meta">
-                      {renderSongTitle(work.title)}
+                      {renderRankingSongTitle(work.title)}
                       <small>{work.isPending ? 'AI正在生成音乐...' : work.missingMusic ? '缺少关联音乐，无法播放' : work.prompt}</small>
                     </span>
                     <span className="mix-ranking-tag">{work.isPending ? 'WAIT' : work.missingMusic ? 'MISS' : `NO.${index + 1}`}</span>

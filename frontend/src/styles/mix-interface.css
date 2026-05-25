@@ -1050,6 +1050,22 @@
   animation: mixGenerationOrbPulse 1.4s ease-in-out infinite;
 }
 
+.mix-generation-orb-art {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 142px;
+  height: 142px;
+  overflow: visible;
+}
+
+.mix-generation-orb-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
 .mix-generation-orb span {
   position: absolute;
   border: 1px solid rgba(255, 255, 255, 0.36);

@@ -34,6 +34,7 @@ import ipadIcon from '../svg/ipad.svg'
 import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
 import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
 import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
+import aiMusicBallRaw from '../svg/center-records/AiMusicBallEnterDiamond.svg?raw'
 import backArrow from '../svg/返回键.svg'
 import '../styles/mix-interface.css'
 
@@ -91,6 +92,7 @@ const headerRightPanel = headerRightPanelRaw
   .split('M898 112C898 97.6406 909.641 86 924 86H1273C1287.36 86 1299 97.6406 1299 112V126V139C1299 153.912 1286.91 166 1272 166H925C910.088 166 898 153.912 898 139V112Z')
   .join('M938 86H1259C1281.09 86 1299 103.909 1299 126C1299 148.091 1281.09 166 1259 166H938C915.909 166 898 148.091 898 126C898 103.909 915.909 86 938 86Z')
   .replace('M924 86.5H1273C1287.08 86.5 1298.5 97.9167 1298.5 112V139C1298.5 153.636 1286.64 165.5 1272 165.5H925C910.364 165.5 898.5 153.636 898.5 139V112C898.5 97.9167 909.917 86.5 924 86.5Z', 'M938 86.5H1259C1280.82 86.5 1298.5 104.185 1298.5 126C1298.5 147.815 1280.82 165.5 1259 165.5H938C916.185 165.5 898.5 147.815 898.5 126C898.5 104.185 916.185 86.5 938 86.5Z')
+const generationOrbSvg = aiMusicBallRaw.replace('viewBox="0 0 738 608"', 'viewBox="138 195 214 214"')
 
 const coverImages = [
   'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582227642792971-other_42.png',
@@ -294,6 +296,7 @@ export default function MixInterfacePage() {
   const [loadingWorks, setLoadingWorks] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [pushing, setPushing] = useState(false)
+  const [hasUnpushedGeneratedWork, setHasUnpushedGeneratedWork] = useState(false)
   const [pushedWorkIds, setPushedWorkIds] = useState<Set<string>>(() => new Set())
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -302,6 +305,7 @@ export default function MixInterfacePage() {
   const [duration, setDuration] = useState(0)
   const [generationStepId, setGenerationStepId] = useState<GenerationStepId | null>(null)
   const [songTitleTooltip, setSongTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
+  const inactivityPaused = generating || generationStepId !== null || hasUnpushedGeneratedWork
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
   const customInputRef = useRef<HTMLInputElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -330,6 +334,7 @@ export default function MixInterfacePage() {
 
   useEffect(() => {
     const returnToStandby = () => {
+      if (inactivityPaused) return
       const standbyUrl = new URL(window.location.href)
       standbyUrl.searchParams.set('mode', 'standby')
       window.history.replaceState(null, '', `${standbyUrl.pathname}${standbyUrl.search}${standbyUrl.hash}`)
@@ -337,6 +342,10 @@ export default function MixInterfacePage() {
     }
     const resetInactivityTimer = () => {
       if (inactivityTimerRef.current !== null) window.clearTimeout(inactivityTimerRef.current)
+      if (inactivityPaused) {
+        inactivityTimerRef.current = null
+        return
+      }
       inactivityTimerRef.current = window.setTimeout(returnToStandby, MIX_INACTIVITY_TIMEOUT_MS)
     }
     const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'touchmove', 'scroll'] as const
@@ -349,7 +358,7 @@ export default function MixInterfacePage() {
       activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetInactivityTimer, listenerOptions))
       if (inactivityTimerRef.current !== null) window.clearTimeout(inactivityTimerRef.current)
     }
-  }, [])
+  }, [inactivityPaused])
 
   const referenceSongs = classic
   const selectedReference = useMemo(
@@ -542,6 +551,7 @@ export default function MixInterfacePage() {
         const item = toWorkItem(record, workIndex, title)
         setWorks((prev) => prev.map((work) => (work.id === pendingId ? item : work)))
         setSelectedWorkId(item.id)
+        setHasUnpushedGeneratedWork(true)
         setMessage('AI混曲已生成')
         setGenerationStepId('complete')
         generationCloseTimerRef.current = window.setTimeout(() => {
@@ -630,6 +640,7 @@ export default function MixInterfacePage() {
       .then((song) => {
         upsertSong(song)
         setPushedWorkIds((prev) => new Set(prev).add(selectedWork.id))
+        setHasUnpushedGeneratedWork(false)
         setSelectedWorkId(song.id)
         setMessage('已推入AI混曲榜单')
       })
@@ -887,12 +898,12 @@ export default function MixInterfacePage() {
             <div className="mix-generation-modal" role="status" aria-live="polite">
               <div className="mix-generation-card">
                 <div className="mix-generation-orb" aria-hidden>
+                  <div className="mix-generation-orb-art" dangerouslySetInnerHTML={{ __html: generationOrbSvg }} />
                   <span />
                   <span />
                   <span />
                 </div>
                 <div className="mix-generation-copy">
-                  <span>AI MIXING</span>
                   <strong>{generationCurrentStep.title}</strong>
                   <p>{generationCurrentStep.description}</p>
                 </div>

@@ -35,9 +35,6 @@ function Toast({ song }: Props) {
         </div>
         <div className="toast-content">
           <div className="toast-heading">
-            <span className="toast-kicker">
-              NEW SONG
-            </span>
             <span className="toast-heading-text">新曲上榜</span>
           </div>
           <p className="toast-title">
@@ -46,7 +43,6 @@ function Toast({ song }: Props) {
           <p className="toast-artist">{song.artist}</p>
         </div>
         <div className="toast-era-badge">
-          <p className="toast-era-short">{cfg.shortLabel}</p>
           <p className="toast-era-label">{cfg.label}</p>
         </div>
       </div>

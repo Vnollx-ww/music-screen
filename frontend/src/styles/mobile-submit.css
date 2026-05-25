@@ -80,6 +80,8 @@
   pointer-events: none;
   user-select: none;
   transform-origin: center center;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .ms-top-icon svg {
@@ -102,16 +104,6 @@
   visibility: hidden;
 }
 
-.ms-era-pill-overlay > svg > * {
-  visibility: hidden;
-}
-
-.ms-era-pill-overlay > svg > defs,
-.ms-era-pill-overlay .mobile-svg-submit-era-pill,
-.ms-era-pill-overlay .mobile-svg-submit-era-pill * {
-  visibility: visible;
-}
-
 .ms-era-pill-label {
   position: absolute;
   top: 254px;
@@ -127,12 +119,16 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .ms-form {
   position: absolute;
   inset: 0;
   z-index: 6;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
 }
 
 .ms-field-label {
@@ -439,7 +435,7 @@
   opacity: 0;
   pointer-events: none;
   transform: translateY(14px) scale(0.98);
-  backdrop-filter: blur(16px);
+  will-change: transform, opacity;
 }
 
 .ms-upload-status-title {
@@ -467,19 +463,22 @@
 .ms-canvas-upload-flow .mobile-svg-submit-top-frame {
   pointer-events: none;
   animation: msSubmitFrameDissolve 0.72s ease forwards;
+  will-change: opacity;
 }
 
 .ms-canvas-upload-flow .ms-form,
 .ms-canvas-upload-flow .mobile-svg-submit-form-shell {
   pointer-events: none;
   animation: msSubmitDissolveOut 0.9s ease forwards;
+  will-change: transform, opacity;
 }
 
 .ms-canvas-upload-flow .ms-era-pill-label,
-.ms-canvas-upload-flow .mobile-svg-submit-era-pill {
+.ms-canvas-upload-flow .ms-era-pill-overlay .mobile-svg-submit-era-pill {
   pointer-events: none;
   transform-origin: center center;
   animation: msSubmitPillDissolve 1.15s ease 0.55s forwards;
+  will-change: transform, opacity;
 }
 
 .ms-canvas-upload-flow .ms-top-icon {
@@ -499,18 +498,15 @@
 @keyframes msSubmitDissolveOut {
   0% {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0) scale(1);
   }
 
   60% {
     opacity: 0.28;
-    filter: blur(5px);
   }
 
   100% {
     opacity: 0;
-    filter: blur(10px);
     transform: translateY(-10px) scale(0.985);
   }
 }
@@ -518,25 +514,21 @@
 @keyframes msSubmitFrameDissolve {
   0% {
     opacity: 1;
-    filter: blur(0);
   }
 
   100% {
     opacity: 0;
-    filter: blur(10px);
   }
 }
 
 @keyframes msSubmitPillDissolve {
   0% {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0) scale(1);
   }
 
   100% {
     opacity: 0;
-    filter: blur(8px);
     transform: translateY(18px) scale(0.92);
   }
 }

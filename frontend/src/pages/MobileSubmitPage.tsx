@@ -5,7 +5,7 @@ import SubmitTopRecord from '../components/SubmitTopRecord'
 import { useFitToWidth } from '../hooks/useFitToWidth'
 import { uploadSourceAudio } from '../lib/music'
 import { insertSong } from '../lib/songs'
-import { decorateMobileSubmitBaseSvg } from '../lib/mobileSvgFloat'
+import { decorateMobileSubmitBaseSvg, decorateMobileSubmitEraPillSvg } from '../lib/mobileSvgFloat'
 import type { Era } from '../types/song'
 import vinylIconUrl from '../svg/ranking-panel-left/icons/Vinyl.svg'
 import cdIconUrl from '../svg/ranking-panel-left/icons/Cd.svg'
@@ -33,6 +33,7 @@ const submitEraOptions: SubmitEraOption[] = [
 ]
 
 const floatingSubmitBaseSvg = decorateMobileSubmitBaseSvg(submitBaseSvg)
+const floatingSubmitEraPillSvg = decorateMobileSubmitEraPillSvg(submitBaseSvg)
 const SUBMIT_ANIMATION_MS = 2600
 const ERA_PILL_TITLE_MAX_CHARS = 6
 
@@ -159,7 +160,7 @@ export default function MobileSubmitPage() {
 
           {era && <SubmitTopRecord era={era} className="ms-top-icon" />}
 
-          <InlineSvg html={floatingSubmitBaseSvg} className="ms-era-pill-overlay mobile-floating-svg" />
+          <InlineSvg html={floatingSubmitEraPillSvg} className="ms-era-pill-overlay mobile-floating-svg" />
 
           <div className="ms-era-pill-label">{selectedEraLabel}</div>
 

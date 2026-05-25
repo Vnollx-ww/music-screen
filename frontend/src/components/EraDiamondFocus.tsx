@@ -25,33 +25,52 @@ const diamonds: { era: Era; panel: string; icon: string }[] = [
 ]
 
 function EraDiamondFocus({ activeEra }: Props) {
+  const activeDiamond = diamonds.find((diamond) => diamond.era === activeEra)
+
   return (
-    <div className="pointer-events-none absolute inset-0">
-      {diamonds.map(({ era, panel, icon }) => {
-        const isActive = activeEra === era
-        const isDimmed = activeEra !== null && !isActive
+    <div className={'pointer-events-none absolute inset-0 ' + (activeDiamond ? 'z-[30]' : 'z-[5]')}>
+      {diamonds.map(({ era, panel }) => {
+        const isDimmed = activeEra !== null && activeEra !== era
         return (
-          <div key={era} className="absolute inset-0">
-            <img
-              src={panel}
-              alt=""
-              className={
-                'era-diamond-layer absolute inset-0 z-[3] h-full w-full select-none object-fill' +
-                (isDimmed ? ' era-diamond-dimmed' : '')
-              }
-            />
-            <img
-              src={icon}
-              alt=""
-              className={
-                'era-diamond-layer absolute inset-0 z-[5] h-full w-full select-none object-fill' +
-                (isActive ? ' era-diamond-icon-lift' : '') +
-                (isDimmed ? ' era-diamond-dimmed' : '')
-              }
-            />
-          </div>
+          <img
+            key={`panel-${era}`}
+            src={panel}
+            alt=""
+            className={
+              'era-diamond-layer absolute inset-0 z-[3] h-full w-full select-none object-fill' +
+              (isDimmed ? ' era-diamond-dimmed' : '')
+            }
+          />
         )
       })}
+
+      {diamonds.map(({ era, icon }) => {
+        const isActive = activeEra === era
+        const isDimmed = activeEra !== null && !isActive
+        if (isActive) return null
+
+        return (
+          <img
+            key={`icon-${era}`}
+            src={icon}
+            alt=""
+            className={
+              'era-diamond-layer absolute inset-0 z-[5] h-full w-full select-none object-fill' +
+              (isDimmed ? ' era-diamond-dimmed' : '')
+            }
+          />
+        )
+      })}
+
+      {activeDiamond ? (
+        <img
+          key={`active-icon-${activeDiamond.era}`}
+          src={activeDiamond.icon}
+          alt=""
+          className="era-diamond-layer era-diamond-icon-lift absolute inset-0 h-full w-full select-none object-fill"
+          style={{ zIndex: 31 }}
+        />
+      ) : null}
     </div>
   )
 }

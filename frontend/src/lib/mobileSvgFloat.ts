@@ -44,6 +44,14 @@ function decorateSubmitTopPill(svg: string) {
   )
 }
 
+function extractSubmitTopPill(svg: string) {
+  const svgOpen = svg.match(/^<svg\b[^>]*>/)?.[0] ?? '<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">'
+  const pill = svg.match(/<foreignObject x="56" y="184" width="273" height="136">[\s\S]*?<g filter="url\(#filter7_d_44_7235\)" data-figma-bg-blur-radius="4\.3">[\s\S]*?<\/g>/)?.[0]
+  const defs = svg.match(/<defs>[\s\S]*<\/defs>/)?.[0] ?? ''
+  if (!pill) return decorateSubmitTopPill(svg)
+  return `${svgOpen}<g class="mobile-svg-submit-era-pill">${pill}</g>${defs}</svg>`
+}
+
 function decorateSubmitTopFrame(svg: string) {
   return svg.replace(
     /<foreignObject x="58" y="44" width="271" height="271">[\s\S]*?<g filter="url\(#filter6_d_44_7235\)" data-figma-bg-blur-radius="4\.3">[\s\S]*?<\/g>/,
@@ -87,6 +95,10 @@ export function decorateMobileSubmitBaseSvg(svg: string) {
     SUBMIT_BASE_SINGLE_BUBBLE,
     'mobile-svg-bubble-submit-single',
   )
+}
+
+export function decorateMobileSubmitEraPillSvg(svg: string) {
+  return extractSubmitTopPill(svg)
 }
 
 export function decorateMobileVoteBackgroundSvg(svg: string) {

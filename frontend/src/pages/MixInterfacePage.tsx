@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ChangeEvent, SVGProps } from 'react'
 import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useSongs } from '../hooks/useSongs'
@@ -31,9 +31,7 @@ import secondaryCapsule from '../svg/mix-interface/form/capsules/SecondaryBlackC
 import primaryCapsule from '../svg/mix-interface/form/capsules/PrimaryGradientCapsule.svg'
 import rankingPanel from '../svg/mix-interface/ranking/panels/RankingPanel.svg'
 import ipadIcon from '../svg/ipad.svg'
-import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
 import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
-import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
 import aiMusicBallRaw from '../svg/center-records/AiMusicBallEnterDiamond.svg?raw'
 import backArrow from '../svg/返回键.svg'
 import '../styles/mix-interface.css'
@@ -296,10 +294,6 @@ function createPendingWorkItem(id: string, prompt: string, title: string): WorkI
   }
 }
 
-function songLabel(song: Song): string {
-  return `${song.title} · ${song.artist}`
-}
-
 function waitFor(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -334,15 +328,26 @@ export default function MixInterfacePage() {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [playerOpen, setPlayerOpen] = useState(false)
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
   const [generationStepId, setGenerationStepId] = useState<GenerationStepId | null>(null)
   const [songTitleTooltip, setSongTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
-  const inactivityPaused = generating || generationStepId !== null || hasUnpushedGeneratedWork
+  const modalOpen = generationStepId !== null || playerOpen || confirmCloseOpen
+  const inactivityPaused = generating || modalOpen || hasUnpushedGeneratedWork || playing
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
   const customInputRef = useRef<HTMLInputElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoPlayWorkIdRef = useRef<string | null>(null)
   const inactivityTimerRef = useRef<number | null>(null)
   const generationCloseTimerRef = useRef<number | null>(null)
+
+  const closePlayer = useCallback(() => {
+    autoPlayWorkIdRef.current = null
+    audioRef.current?.pause()
+    setPlaying(false)
+    setPlayerOpen(false)
+    setConfirmCloseOpen(false)
+  }, [])
 
   useEffect(() => {
     let rafId = 0
@@ -426,12 +431,18 @@ export default function MixInterfacePage() {
       }),
     [aiSongs, generatedMusicById, loadingWorks],
   )
+  const playableRankWorks = useMemo(
+    () => aiRankWorks.filter((work) => !work.isPending && !work.isMusicLoading && !work.missingMusic && Boolean(work.music_url)),
+    [aiRankWorks],
+  )
   const selectedWork = useMemo(
     () => (selectedWorkId ? works.find((work) => work.id === selectedWorkId) ?? aiRankWorks.find((work) => work.songId === selectedWorkId || work.id === selectedWorkId) ?? null : null),
     [aiRankWorks, selectedWorkId, works],
   )
   const progressPercent = duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
   const selectedWorkPushed = selectedWork ? Boolean(selectedWork.songId) || pushedWorkIds.has(selectedWork.id) : false
+  const canSelectAdjacentWork = selectedWork ? playableRankWorks.some((work) => work.id === selectedWork.id) : false
+  const shouldConfirmPlayerClose = Boolean(selectedWork && hasUnpushedGeneratedWork && !selectedWorkPushed)
   const selectedReferenceAudioUnavailableReason = useMemo(() => {
     if (!selectedReference) return '请先选择一首社区热门歌曲'
     if (!selectedReference.music_id) return `《${selectedReference.title}》没有关联音频，无法作为AI混曲参考`
@@ -440,6 +451,19 @@ export default function MixInterfacePage() {
     if (!selectedReferenceMusic.music_url) return `《${selectedReference.title}》关联音频暂时无法访问，无法作为AI混曲参考`
     return ''
   }, [loadingWorks, selectedReference, selectedReferenceMusic])
+
+  const requestClosePlayer = useCallback(() => {
+    if (shouldConfirmPlayerClose) {
+      setConfirmCloseOpen(true)
+      return
+    }
+    closePlayer()
+  }, [closePlayer, shouldConfirmPlayerClose])
+
+  const confirmClosePlayer = useCallback(() => {
+    setHasUnpushedGeneratedWork(false)
+    closePlayer()
+  }, [closePlayer])
 
   useEffect(() => {
     if (!selectedReferenceId && referenceSongs.length > 0) setSelectedReferenceId(referenceSongs[0].id)
@@ -469,6 +493,15 @@ export default function MixInterfacePage() {
   useEffect(() => {
     if (!selectedWorkId && aiRankWorks.length > 0) setSelectedWorkId(aiRankWorks[0].songId ?? aiRankWorks[0].id)
   }, [aiRankWorks, selectedWorkId])
+
+  useEffect(() => {
+    if (!playerOpen) return undefined
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') requestClosePlayer()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [playerOpen, requestClosePlayer])
 
   useEffect(() => {
     let stopped = false
@@ -583,12 +616,15 @@ export default function MixInterfacePage() {
       .then((record) => {
         const item = toWorkItem(record, workIndex, title)
         setWorks((prev) => prev.map((work) => (work.id === pendingId ? item : work)))
-        setSelectedWorkId(item.id)
         setHasUnpushedGeneratedWork(true)
         setMessage('AI混曲已生成')
         setGenerationStepId('complete')
         generationCloseTimerRef.current = window.setTimeout(() => {
           setGenerationStepId(null)
+          autoPlayWorkIdRef.current = item.id
+          setSelectedWorkId(item.id)
+          setPlayerOpen(true)
+          setMessage('正在播放AI混曲')
           generationCloseTimerRef.current = null
         }, GENERATION_COMPLETE_HIDE_MS)
       })
@@ -610,6 +646,7 @@ export default function MixInterfacePage() {
       autoPlayWorkIdRef.current = null
       setSelectedWorkId(nextWorkId)
       setPlaying(false)
+      setPlayerOpen(false)
       setMessage('音频信息还在加载中，请稍后再试')
       return
     }
@@ -617,11 +654,13 @@ export default function MixInterfacePage() {
       autoPlayWorkIdRef.current = null
       setSelectedWorkId(nextWorkId)
       setPlaying(false)
+      setPlayerOpen(false)
       setError('这首AI混曲缺少关联音乐，无法播放')
       return
     }
     autoPlayWorkIdRef.current = nextWorkId
     setSelectedWorkId(nextWorkId)
+    setPlayerOpen(true)
     setMessage('正在播放AI混曲')
     if (nextWorkId === selectedWorkId) {
       const audio = audioRef.current
@@ -661,11 +700,10 @@ export default function MixInterfacePage() {
   }
 
   const selectAdjacentWork = (direction: -1 | 1) => {
-    if (!selectedWork || aiRankWorks.length === 0) return
-    const playableWorks = aiRankWorks.filter((work) => !work.isPending && !work.isMusicLoading && !work.missingMusic && Boolean(work.music_url))
-    const currentIndex = playableWorks.findIndex((work) => work.id === selectedWork.id)
+    if (!selectedWork || playableRankWorks.length === 0) return
+    const currentIndex = playableRankWorks.findIndex((work) => work.id === selectedWork.id)
     if (currentIndex < 0) return
-    const next = playableWorks[(currentIndex + direction + playableWorks.length) % playableWorks.length]
+    const next = playableRankWorks[(currentIndex + direction + playableRankWorks.length) % playableRankWorks.length]
     if (next) handleWorkSelect(next)
   }
 
@@ -740,7 +778,6 @@ export default function MixInterfacePage() {
     )
   }
 
-  const footerCurrentTitle = selectedWork?.title ?? selectedReference?.title
   const generationStepIndex = generationStepId ? generationSteps.findIndex((step) => step.id === generationStepId) : -1
   const generationCurrentStep = generationStepIndex >= 0 ? generationSteps[generationStepIndex] : null
   const generationProgressPercent = generationStepIndex >= 0 ? ((generationStepIndex + 1) / generationSteps.length) * 100 : 0
@@ -895,40 +932,6 @@ export default function MixInterfacePage() {
             </div>
           </aside>
 
-          <footer className="mix-footer">
-            <img src={footerPanel} className="mix-footer-panel" alt="" aria-hidden />
-            <div className="mix-footer-current">
-              <img src={footerIcon} alt="" aria-hidden />
-              <div>
-                {footerCurrentTitle ? renderSongTitle(footerCurrentTitle) : <strong>等待选择混曲</strong>}
-                <span>{selectedWork ? selectedWork.prompt : selectedReference ? songLabel(selectedReference) : '请先选择右侧AI混曲'}</span>
-              </div>
-            </div>
-            <div className="mix-footer-player">
-              <button type="button" onClick={() => selectAdjacentWork(-1)} disabled={!selectedWork} aria-label="上一首"><Icon name="prev" /></button>
-              <button className="mix-footer-play" type="button" onClick={togglePlay} disabled={!selectedWork?.music_url} aria-label={playing ? '暂停' : '播放'}>
-                <Icon name={playing ? 'pause' : 'play'} className={playing ? undefined : 'mix-footer-play-icon'} />
-              </button>
-              <button type="button" onClick={() => selectAdjacentWork(1)} disabled={!selectedWork} aria-label="下一首"><Icon name="next" /></button>
-              <span>{formatTime(currentTime)}</span>
-              <input
-                className="mix-footer-range"
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={Math.min(currentTime, duration || 0)}
-                onChange={handleSeek}
-                disabled={!duration}
-                style={{ '--mix-progress': `${progressPercent}%` } as CSSProperties}
-              />
-              <span>{formatTime(duration)}</span>
-            </div>
-            <button className="mix-push-button" type="button" onClick={handlePushToRanking} disabled={!selectedWork || selectedWork.isPending || selectedWorkPushed || pushing}>
-              <img src={pushCapsule} alt="" aria-hidden />
-              <span>{selectedWorkPushed ? '已推榜' : pushing ? '推榜中' : '推榜'}</span>
-            </button>
-          </footer>
-
           <div className="mix-ai-disclaimer">此音乐内容由AI生成，不作任何商用途径，重要信息务必核查。</div>
 
           {(error || songsError || message) && (
@@ -968,6 +971,66 @@ export default function MixInterfacePage() {
                     )
                   })}
                 </ol>
+              </div>
+            </div>
+          )}
+
+          {playerOpen && selectedWork && (
+            <div className="mix-player-modal" role="dialog" aria-modal="true" aria-label="AI混曲播放器" onClick={requestClosePlayer}>
+              <div className="mix-player-card" onClick={(event) => event.stopPropagation()}>
+                <button className="mix-player-close" type="button" onClick={requestClosePlayer} aria-label="关闭播放器">×</button>
+                <div className="mix-player-visual" aria-hidden>
+                  <div className="mix-player-orb" dangerouslySetInnerHTML={{ __html: generationOrbSvg }} />
+                  <div className="mix-player-wave">
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                    <span />
+                  </div>
+                </div>
+                <div className="mix-player-content">
+                  <h2>{selectedWork.title}</h2>
+                  <p>{selectedWork.prompt}</p>
+                  <div className="mix-player-controls">
+                    <button type="button" onClick={() => selectAdjacentWork(-1)} disabled={!canSelectAdjacentWork} aria-label="上一首"><Icon name="prev" /></button>
+                    <button className="mix-player-play" type="button" onClick={togglePlay} disabled={!selectedWork.music_url} aria-label={playing ? '暂停' : '播放'}>
+                      <Icon name={playing ? 'pause' : 'play'} className={playing ? undefined : 'mix-player-play-icon'} />
+                    </button>
+                    <button type="button" onClick={() => selectAdjacentWork(1)} disabled={!canSelectAdjacentWork} aria-label="下一首"><Icon name="next" /></button>
+                  </div>
+                  <div className="mix-player-progress">
+                    <span>{formatTime(currentTime)}</span>
+                    <input
+                      className="mix-player-range"
+                      type="range"
+                      min="0"
+                      max={duration || 0}
+                      value={Math.min(currentTime, duration || 0)}
+                      onChange={handleSeek}
+                      disabled={!duration}
+                      style={{ '--mix-progress': `${progressPercent}%` } as CSSProperties}
+                    />
+                    <span>{formatTime(duration)}</span>
+                  </div>
+                  <button className="mix-player-push-button" type="button" onClick={handlePushToRanking} disabled={!selectedWork || selectedWork.isPending || selectedWorkPushed || pushing}>
+                    <img src={pushCapsule} alt="" aria-hidden />
+                    <span>{selectedWorkPushed ? '已推榜' : pushing ? '推榜中' : '推榜'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {confirmCloseOpen && (
+            <div className="mix-confirm-modal" role="dialog" aria-modal="true" aria-label="关闭确认" onClick={() => setConfirmCloseOpen(false)}>
+              <div className="mix-confirm-card" onClick={(event) => event.stopPropagation()}>
+                <strong>还没有推榜</strong>
+                <p>这首AI混曲还没有推入榜单，确认关闭播放器吗？</p>
+                <div className="mix-confirm-actions">
+                  <button className="mix-confirm-secondary" type="button" onClick={() => setConfirmCloseOpen(false)}>继续推榜</button>
+                  <button className="mix-confirm-primary" type="button" onClick={confirmClosePlayer}>确认关闭</button>
+                </div>
               </div>
             </div>
           )}

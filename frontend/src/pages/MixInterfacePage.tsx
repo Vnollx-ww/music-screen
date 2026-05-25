@@ -43,6 +43,7 @@ type WorkItem = GeneratedMusic & {
   durationLabel: string
   songId?: string
   missingMusic?: boolean
+  isMusicLoading?: boolean
   isPending?: boolean
 }
 
@@ -250,6 +251,29 @@ function toMissingMusicRankWorkItem(song: Song, index: number): WorkItem {
   }
 }
 
+function toLoadingMusicRankWorkItem(song: Song): WorkItem {
+  const now = new Date().toISOString()
+  return {
+    id: `loading-${song.id}`,
+    model: 'music-2.6',
+    prompt: '音频信息加载中...',
+    lyrics: null,
+    source_audio_url: '',
+    music_url: '',
+    minio_bucket: '',
+    minio_object_name: '',
+    content_type: null,
+    file_size_bytes: null,
+    status: 'loading',
+    expires_at: now,
+    created_at: song.created_at,
+    title: song.title,
+    durationLabel: '加载中',
+    songId: song.id,
+    isMusicLoading: true,
+  }
+}
+
 function createPendingWorkItem(id: string, prompt: string, title: string): WorkItem {
   const now = new Date().toISOString()
   return {
@@ -278,6 +302,13 @@ function songLabel(song: Song): string {
 
 function waitFor(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
+function isInterruptedAudioPlayError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err)
+  return (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError')
+    || message.includes('The play() request was interrupted')
+    || message.includes('interrupted by a new load request')
 }
 
 export default function MixInterfacePage() {
@@ -372,7 +403,7 @@ export default function MixInterfacePage() {
   const generatedMusicById = useMemo(() => {
     const map = new Map<string, GeneratedMusic>()
     works.forEach((work) => {
-      if (!work.isPending) map.set(work.id, work)
+      if (!work.isPending && !work.isMusicLoading) map.set(work.id, work)
     })
     return map
   }, [works])
@@ -389,10 +420,11 @@ export default function MixInterfacePage() {
       .map((song, index) => {
         if (!song.music_id) return toMissingMusicRankWorkItem(song, index)
         const record = generatedMusicById.get(song.music_id)
+        if (!record && loadingWorks) return toLoadingMusicRankWorkItem(song)
         if (!record) return toMissingMusicRankWorkItem(song, index)
         return toRankWorkItem(song, record, index)
       }),
-    [aiSongs, generatedMusicById],
+    [aiSongs, generatedMusicById, loadingWorks],
   )
   const selectedWork = useMemo(
     () => (selectedWorkId ? works.find((work) => work.id === selectedWorkId) ?? aiRankWorks.find((work) => work.songId === selectedWorkId || work.id === selectedWorkId) ?? null : null),
@@ -481,6 +513,7 @@ export default function MixInterfacePage() {
           setError('')
         }).catch((err: unknown) => {
           if (autoPlayWorkIdRef.current === selectedWorkId) autoPlayWorkIdRef.current = null
+          if (isInterruptedAudioPlayError(err)) return
           setError(err instanceof Error ? err.message : '播放失败')
         })
       }
@@ -573,6 +606,13 @@ export default function MixInterfacePage() {
   const handleWorkSelect = (work: WorkItem) => {
     if (work.isPending) return
     const nextWorkId = work.songId ?? work.id
+    if (work.isMusicLoading) {
+      autoPlayWorkIdRef.current = null
+      setSelectedWorkId(nextWorkId)
+      setPlaying(false)
+      setMessage('音频信息还在加载中，请稍后再试')
+      return
+    }
     if (work.missingMusic || !work.music_url) {
       autoPlayWorkIdRef.current = null
       setSelectedWorkId(nextWorkId)
@@ -592,6 +632,7 @@ export default function MixInterfacePage() {
         setError('')
       }).catch((err: unknown) => {
         if (autoPlayWorkIdRef.current === nextWorkId) autoPlayWorkIdRef.current = null
+        if (isInterruptedAudioPlayError(err)) return
         setError(err instanceof Error ? err.message : '播放失败')
       })
     }
@@ -603,6 +644,7 @@ export default function MixInterfacePage() {
 
     if (audio.paused) {
       void audio.play().then(() => setPlaying(true)).catch((err: unknown) => {
+        if (isInterruptedAudioPlayError(err)) return
         setError(err instanceof Error ? err.message : '播放失败')
       })
       return
@@ -620,7 +662,7 @@ export default function MixInterfacePage() {
 
   const selectAdjacentWork = (direction: -1 | 1) => {
     if (!selectedWork || aiRankWorks.length === 0) return
-    const playableWorks = aiRankWorks.filter((work) => !work.isPending)
+    const playableWorks = aiRankWorks.filter((work) => !work.isPending && !work.isMusicLoading && !work.missingMusic && Boolean(work.music_url))
     const currentIndex = playableWorks.findIndex((work) => work.id === selectedWork.id)
     if (currentIndex < 0) return
     const next = playableWorks[(currentIndex + direction + playableWorks.length) % playableWorks.length]
@@ -832,20 +874,21 @@ export default function MixInterfacePage() {
               {!loadingWorks && !loadingSongs && aiRankWorks.length === 0 && <div className="mix-ranking-empty">暂无AI混曲，先生成一首吧</div>}
               {aiRankWorks.map((work, index) => {
                 const selected = selectedWork?.id === work.id
+                const waiting = work.isPending || work.isMusicLoading
                 return (
                   <button
-                    className={`mix-ranking-row${selected ? ' is-selected' : ''}${work.isPending ? ' is-pending' : ''}`}
+                    className={`mix-ranking-row${selected ? ' is-selected' : ''}${waiting ? ' is-pending' : ''}`}
                     type="button"
                     key={work.songId ?? work.id}
                     onClick={() => handleWorkSelect(work)}
-                    disabled={work.isPending}
+                    disabled={waiting}
                   >
                     <span className="mix-ranking-play"><img src={ipadIcon} alt="" aria-hidden /></span>
                     <span className="mix-ranking-meta">
                       {renderRankingSongTitle(work.title)}
-                      <small>{work.isPending ? 'AI正在生成音乐...' : work.missingMusic ? '缺少关联音乐，无法播放' : work.prompt}</small>
+                      <small>{work.isPending ? 'AI正在生成音乐...' : work.isMusicLoading ? '音频信息加载中...' : work.missingMusic ? '缺少关联音乐，无法播放' : work.prompt}</small>
                     </span>
-                    <span className="mix-ranking-tag">{work.isPending ? 'WAIT' : work.missingMusic ? 'MISS' : `NO.${index + 1}`}</span>
+                    <span className="mix-ranking-tag">{work.isPending ? 'WAIT' : work.isMusicLoading ? 'LOAD' : work.missingMusic ? 'MISS' : `NO.${index + 1}`}</span>
                   </button>
                 )
               })}

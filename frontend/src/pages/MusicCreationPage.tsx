@@ -276,6 +276,8 @@ function createPendingWorkItem(id: string, model: MusicModelValue, prompt: strin
     music_url: '',
     minio_bucket: '',
     minio_object_name: '',
+    content_type: null,
+    file_size_bytes: null,
     status: 'generating',
     expires_at: now,
     created_at: now,
@@ -811,3 +813,5 @@ export default function MusicCreationPage() {
     </section>
   )
 }
+
+

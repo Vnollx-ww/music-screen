@@ -54,6 +54,7 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   })
 
   if (!response.ok) throw new Error(await getErrorMessage(response))
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -67,3 +68,4 @@ export async function apiFormRequest<T>(path: string, body: FormData, init?: Req
   if (!response.ok) throw new Error(await getErrorMessage(response))
   return response.json() as Promise<T>
 }
+

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
 
-type AppMode = 'dashboard' | 'home' | 'mobile' | 'vote' | 'create' | 'music-create' | 'standby'
+type AppMode = 'dashboard' | 'home' | 'mobile' | 'vote' | 'create' | 'music-create' | 'standby' | 'admin'
 
 function subscribe(cb: () => void) {
   window.addEventListener('popstate', cb)
@@ -9,10 +9,11 @@ function subscribe(cb: () => void) {
 
 function getSnapshot(): AppMode {
   const mode = new URLSearchParams(window.location.search).get('mode')
-  if (mode === 'home' || mode === 'mobile' || mode === 'vote' || mode === 'create' || mode === 'music-create' || mode === 'standby') return mode
+  if (mode === 'home' || mode === 'mobile' || mode === 'vote' || mode === 'create' || mode === 'music-create' || mode === 'standby' || mode === 'admin') return mode
   return 'dashboard'
 }
 
 export function useMobileMode(): AppMode {
   return useSyncExternalStore(subscribe, getSnapshot)
 }
+

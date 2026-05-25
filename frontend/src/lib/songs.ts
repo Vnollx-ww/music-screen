@@ -1,6 +1,6 @@
 import { apiRequest } from './api'
 import { normalizeEra } from './eraConfig'
-import type { Song, SongRow, CreateSongInput } from '../types/song'
+import type { Song, SongRow, CreateSongInput, UpdateSongInput } from '../types/song'
 
 export function normalizeSongRow(row: SongRow): Song {
   return {
@@ -44,3 +44,27 @@ export async function voteSong(songId: string): Promise<Song> {
   })
   return normalizeSongRow(data)
 }
+
+export async function updateSong(songId: string, input: UpdateSongInput): Promise<Song> {
+  const payload: Record<string, unknown> = {}
+  if ('title' in input) payload.title = input.title?.trim()
+  if ('music_id' in input) payload.music_id = input.music_id?.trim() || null
+  if ('artist' in input) payload.artist = input.artist?.trim() || null
+  if ('era' in input) payload.era = input.era
+  if ('votes' in input) payload.votes = input.votes
+  if ('play_count' in input) payload.play_count = input.play_count
+  if ('recommend_count' in input) payload.recommend_count = input.recommend_count
+
+  const data = await apiRequest<SongRow>(`/songs/${encodeURIComponent(songId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+  return normalizeSongRow(data)
+}
+
+export async function deleteSong(songId: string): Promise<void> {
+  await apiRequest<void>(`/songs/${encodeURIComponent(songId)}`, {
+    method: 'DELETE',
+  })
+}
+

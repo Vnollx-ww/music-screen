@@ -1,0 +1,576 @@
+.admin-shell {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(97, 72, 255, 0.32), transparent 28%),
+    radial-gradient(circle at 84% 0%, rgba(26, 217, 255, 0.18), transparent 30%),
+    linear-gradient(135deg, #080914 0%, #121427 48%, #080914 100%);
+  color: rgba(255, 255, 255, 0.94);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.admin-shell button,
+.admin-shell input,
+.admin-shell select {
+  font: inherit;
+}
+
+.admin-shell button {
+  border: 0;
+  color: inherit;
+}
+
+.admin-sidebar {
+  display: flex;
+  width: 300px;
+  flex: 0 0 300px;
+  flex-direction: column;
+  gap: 24px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(5, 6, 16, 0.72);
+  padding: 28px 22px;
+  box-shadow: 20px 0 80px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(22px);
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b6cff, #16d7ff);
+  color: #050713;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+}
+
+.admin-brand p,
+.admin-header p {
+  margin: 0 0 4px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+}
+
+.admin-brand h1,
+.admin-header h2,
+.admin-panel h3,
+.admin-music-card h4 {
+  margin: 0;
+}
+
+.admin-brand h1 {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.admin-stat-card {
+  min-height: 88px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 14px;
+}
+
+.admin-stat-card span {
+  display: block;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+}
+
+.admin-stat-card strong {
+  display: block;
+  margin-top: 12px;
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-nav button,
+.admin-sidebar-footer button,
+.admin-header-actions button,
+.admin-panel-head button,
+.admin-form-actions button,
+.admin-upload-panel button,
+.admin-music-card button {
+  cursor: pointer;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 12px 14px;
+  color: rgba(255, 255, 255, 0.76);
+  text-align: left;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-nav button {
+  border: 1px solid transparent;
+}
+
+.admin-nav button:hover,
+.admin-sidebar-footer button:hover,
+.admin-header-actions button:hover,
+.admin-panel-head button:hover,
+.admin-form-actions button:hover,
+.admin-upload-panel button:hover,
+.admin-music-card button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.admin-nav .admin-nav-active {
+  border-color: rgba(22, 215, 255, 0.45);
+  background: linear-gradient(135deg, rgba(139, 108, 255, 0.35), rgba(22, 215, 255, 0.14));
+  color: #fff;
+}
+
+.admin-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.admin-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 18px;
+  overflow: hidden;
+  padding: 26px;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.admin-header h2 {
+  font-size: 30px;
+  letter-spacing: 0.4px;
+}
+
+.admin-header-actions,
+.admin-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-header-actions button,
+.admin-form-actions button,
+.admin-upload-panel button,
+.admin-panel-head button,
+.admin-music-card button {
+  text-align: center;
+}
+
+.admin-primary-btn {
+  background: linear-gradient(135deg, #8b6cff, #16d7ff) !important;
+  color: #050713 !important;
+  font-weight: 800;
+}
+
+.admin-danger-btn {
+  background: rgba(255, 77, 116, 0.16) !important;
+  color: #ff8ba7 !important;
+}
+
+.admin-shell button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.admin-alert {
+  border: 1px solid rgba(22, 215, 255, 0.35);
+  border-radius: 16px;
+  background: rgba(22, 215, 255, 0.1);
+  padding: 12px 16px;
+  color: #bcf5ff;
+}
+
+.admin-alert-error {
+  border-color: rgba(255, 77, 116, 0.45);
+  background: rgba(255, 77, 116, 0.12);
+  color: #ffb5c6;
+}
+
+.admin-content-grid {
+  display: grid;
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(660px, 1fr) 430px;
+  gap: 18px;
+  overflow: hidden;
+}
+
+.admin-panel {
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 24px;
+  background: rgba(8, 10, 24, 0.68);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+}
+
+.admin-song-panel,
+.admin-library-panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 20px;
+}
+
+.admin-panel-head h3 {
+  font-size: 18px;
+}
+
+.admin-panel-head span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+}
+
+.admin-panel-head input {
+  width: 260px;
+}
+
+.admin-shell input,
+.admin-shell select {
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  padding: 11px 12px;
+  color: #fff;
+}
+
+.admin-shell select option {
+  background: #121427;
+  color: #fff;
+}
+
+.admin-shell input:focus,
+.admin-shell select:focus {
+  border-color: rgba(22, 215, 255, 0.52);
+  box-shadow: 0 0 0 3px rgba(22, 215, 255, 0.1);
+}
+
+.admin-table-wrap {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+
+.admin-song-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 920px;
+}
+
+.admin-song-table th,
+.admin-song-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-song-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(11, 13, 28, 0.96);
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-song-table tr {
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.admin-song-table tbody tr:hover,
+.admin-row-selected {
+  background: rgba(22, 215, 255, 0.08);
+}
+
+.admin-song-table td strong {
+  display: block;
+  max-width: 230px;
+  overflow: hidden;
+  color: #fff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-song-table td span {
+  display: block;
+  max-width: 230px;
+  overflow: hidden;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-era-pill {
+  display: inline-flex;
+  min-width: 52px;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.admin-era-vinyl { background: rgba(255, 84, 185, 0.18); color: #ff9bd6; }
+.admin-era-tape { background: rgba(79, 156, 255, 0.18); color: #8ec1ff; }
+.admin-era-cd { background: rgba(169, 120, 255, 0.18); color: #ceb0ff; }
+.admin-era-digital { background: rgba(22, 215, 255, 0.18); color: #8ef3ff; }
+.admin-era-ai { background: rgba(255, 216, 91, 0.18); color: #ffe28c; }
+
+.admin-empty-cell,
+.admin-empty-library {
+  padding: 48px !important;
+  color: rgba(255, 255, 255, 0.48);
+  text-align: center !important;
+}
+
+.admin-editor-stack {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 18px;
+  overflow: auto;
+}
+
+.admin-editor-panel,
+.admin-upload-panel {
+  flex: none;
+  overflow: hidden;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 20px 20px;
+}
+
+.admin-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.admin-form label span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.admin-form input,
+.admin-form select {
+  width: 100%;
+}
+
+.admin-metric-row,
+.admin-upload-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-upload-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-linked-audio {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid rgba(22, 215, 255, 0.18);
+  border-radius: 18px;
+  background: rgba(22, 215, 255, 0.08);
+  padding: 14px;
+}
+
+.admin-linked-audio strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-linked-audio span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 12px;
+}
+
+.admin-linked-audio audio,
+.admin-music-card audio {
+  width: 100%;
+  height: 34px;
+}
+
+.admin-file-control {
+  position: relative;
+  display: grid !important;
+  min-height: 48px;
+  cursor: pointer;
+  place-items: center;
+  border: 1px dashed rgba(22, 215, 255, 0.38);
+  border-radius: 16px;
+  background: rgba(22, 215, 255, 0.07);
+  padding: 12px;
+  text-align: center;
+}
+
+.admin-file-control input {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.admin-library-panel {
+  flex: 1;
+}
+
+.admin-music-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  overflow: auto;
+  padding: 20px;
+}
+
+.admin-music-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.055);
+  padding: 16px;
+}
+
+.admin-music-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-music-card h4 {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #fff;
+  font-size: 16px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.admin-music-card-head span {
+  display: block;
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 12px;
+}
+
+.admin-music-card dl {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.admin-music-card dl div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.admin-music-card dt,
+.admin-music-card dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+}
+
+.admin-music-card dt {
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.admin-music-card dd {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.7);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-table-wrap::-webkit-scrollbar,
+.admin-editor-stack::-webkit-scrollbar,
+.admin-music-grid::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.admin-table-wrap::-webkit-scrollbar-thumb,
+.admin-editor-stack::-webkit-scrollbar-thumb,
+.admin-music-grid::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 1280px) {
+  .admin-sidebar {
+    width: 260px;
+    flex-basis: 260px;
+  }
+
+  .admin-content-grid {
+    grid-template-columns: minmax(560px, 1fr) 390px;
+  }
+}

@@ -177,6 +177,8 @@ def build_generated_music_out(record: GeneratedMusic) -> GeneratedMusicOut:
         music_url=_presigned_music_url(record),
         minio_bucket=record.minio_bucket,
         minio_object_name=record.minio_object_name,
+        content_type=record.content_type,
+        file_size_bytes=record.file_size_bytes,
         status=record.status,
         expires_at=record.expires_at,
         created_at=record.created_at,

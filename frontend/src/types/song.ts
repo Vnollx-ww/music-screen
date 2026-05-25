@@ -31,4 +31,14 @@ export interface CreateSongInput {
   era: Era
 }
 
+export interface UpdateSongInput {
+  title?: string
+  music_id?: string | null
+  artist?: string | null
+  era?: Era
+  votes?: number
+  play_count?: number
+  recommend_count?: number
+}
+
 export type RealtimeStatus = 'CONNECTING' | 'SUBSCRIBED' | 'CHANNEL_ERROR' | 'TIMED_OUT' | 'CLOSED'

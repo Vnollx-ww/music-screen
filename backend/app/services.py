@@ -7,7 +7,7 @@ from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .models import GeneratedMusic, Song, SongVoteIpLimit
-from .schemas import CreateSongRequest
+from .schemas import CreateSongRequest, UpdateSongRequest
 from .settings import get_settings
 
 
@@ -33,6 +33,45 @@ def create_song(db: Session, payload: CreateSongRequest) -> Song:
     db.commit()
     db.refresh(song)
     return song
+
+
+def update_song(db: Session, song_id: str, payload: UpdateSongRequest) -> Song:
+    song = db.get(Song, song_id)
+    if song is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="歌曲不存在")
+
+    fields = payload.model_fields_set
+    if "title" in fields:
+        if payload.title is None:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="歌曲名称不能为空")
+        song.title = payload.title
+    if "music_id" in fields:
+        if payload.music_id is not None and db.get(GeneratedMusic, payload.music_id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="生成音乐不存在")
+        song.music_id = payload.music_id
+    if "artist" in fields:
+        song.artist = payload.artist
+    if "era" in fields and payload.era is not None:
+        song.era = payload.era.value
+    if "votes" in fields and payload.votes is not None:
+        song.votes = payload.votes
+    if "play_count" in fields and payload.play_count is not None:
+        song.play_count = payload.play_count
+    if "recommend_count" in fields and payload.recommend_count is not None:
+        song.recommend_count = payload.recommend_count
+
+    db.commit()
+    db.refresh(song)
+    return song
+
+
+def delete_song(db: Session, song_id: str) -> None:
+    song = db.get(Song, song_id)
+    if song is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="歌曲不存在")
+
+    db.delete(song)
+    db.commit()
 
 
 def vote_song(db: Session, song_id: str, voter_ip: str) -> Song:

@@ -9,6 +9,8 @@ export type GeneratedMusic = {
   music_url: string
   minio_bucket: string
   minio_object_name: string
+  content_type: string | null
+  file_size_bytes: number | null
   status: string
   expires_at: string
   created_at: string

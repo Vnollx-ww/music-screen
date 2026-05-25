@@ -8,6 +8,7 @@ const MobileVotePage = lazy(() => import('./pages/MobileVotePage'))
 const MixInterfacePage = lazy(() => import('./pages/MixInterfacePage'))
 const MusicCreationPage = lazy(() => import('./pages/MusicCreationPage'))
 const IpadStandbyPage = lazy(() => import('./pages/IpadStandbyPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 function App() {
   const mobileMode = useMobileMode()
@@ -19,8 +20,10 @@ function App() {
   if (mobileMode === 'create') page = <MixInterfacePage />
   if (mobileMode === 'music-create') page = <MusicCreationPage />
   if (mobileMode === 'standby') page = <IpadStandbyPage />
+  if (mobileMode === 'admin') page = <AdminPage />
 
   return <Suspense fallback={null}>{page}</Suspense>
 }
 
 export default App
+

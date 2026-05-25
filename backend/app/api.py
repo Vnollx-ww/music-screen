@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.orm import Session
 
 from .database import get_db
 from .music_service import build_generated_music_out, generate_music, get_generated_music, list_generated_music, preprocess_music_cover, upload_source_audio
 from .realtime import manager
-from .schemas import CreateSongRequest, GeneratedMusicOut, GenerateMusicRequest, MusicCoverPreprocessOut, MusicCoverPreprocessRequest, SongEvent, SongOut
-from .services import create_song, get_client_ip, list_songs, vote_song
+from .schemas import CreateSongRequest, GeneratedMusicOut, GenerateMusicRequest, MusicCoverPreprocessOut, MusicCoverPreprocessRequest, SongEvent, SongOut, UpdateSongRequest
+from .services import create_song, delete_song, get_client_ip, list_songs, update_song, vote_song
 
 router = APIRouter()
 
@@ -27,6 +27,23 @@ async def post_song(payload: CreateSongRequest, db: Session = Depends(get_db)) -
     event = SongEvent(type="insert", song=song_out)
     await manager.broadcast_json(event.model_dump(mode="json"))
     return song_out
+
+
+@router.patch("/songs/{song_id}", response_model=SongOut)
+async def patch_song(song_id: str, payload: UpdateSongRequest, db: Session = Depends(get_db)) -> SongOut:
+    song = update_song(db, song_id, payload)
+    song_out = SongOut.model_validate(song)
+    event = SongEvent(type="update", song=song_out)
+    await manager.broadcast_json(event.model_dump(mode="json"))
+    return song_out
+
+
+@router.delete("/songs/{song_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_song(song_id: str, db: Session = Depends(get_db)) -> Response:
+    delete_song(db, song_id)
+    event = SongEvent(type="delete", song_id=song_id)
+    await manager.broadcast_json(event.model_dump(mode="json"))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/songs/{song_id}/vote", response_model=SongOut)

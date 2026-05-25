@@ -43,6 +43,34 @@ class CreateSongRequest(BaseModel):
         return normalized or None
 
 
+class UpdateSongRequest(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+    music_id: str | None = Field(default=None, max_length=36)
+    artist: str | None = Field(default=None, max_length=255)
+    era: Era | None = None
+    votes: int | None = Field(default=None, ge=0)
+    play_count: int | None = Field(default=None, ge=0)
+    recommend_count: int | None = Field(default=None, ge=0)
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("歌曲名称不能为空")
+        return normalized
+
+    @field_validator("music_id", "artist")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
 class MusicAudioSetting(BaseModel):
     sample_rate: int = Field(default=44100, ge=8000, le=192000)
     bitrate: int = Field(default=256000, ge=32000, le=1024000)
@@ -152,6 +180,8 @@ class GeneratedMusicOut(BaseModel):
     music_url: str
     minio_bucket: str
     minio_object_name: str
+    content_type: str | None = None
+    file_size_bytes: int | None = None
     status: str
     expires_at: datetime
     created_at: datetime

@@ -186,6 +186,8 @@ function toMissingMusicRankWorkItem(song: Song, index: number): WorkItem {
     music_url: '',
     minio_bucket: '',
     minio_object_name: '',
+    content_type: null,
+    file_size_bytes: null,
     status: 'missing',
     expires_at: now,
     created_at: song.created_at,
@@ -207,6 +209,8 @@ function createPendingWorkItem(id: string, prompt: string, title: string): WorkI
     music_url: '',
     minio_bucket: '',
     minio_object_name: '',
+    content_type: null,
+    file_size_bytes: null,
     status: 'generating',
     expires_at: now,
     created_at: now,
@@ -722,3 +726,5 @@ export default function MixInterfacePage() {
     </main>
   )
 }
+
+

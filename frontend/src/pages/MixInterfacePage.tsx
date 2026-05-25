@@ -34,7 +34,7 @@ import playIcon from '../svg/mix-interface/ranking/icons/Play1.svg'
 import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
 import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
 import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
-import backArrow from '../svg/mobile-vote/icons/BackArrow.svg'
+import backArrow from '../svg/返回键.svg'
 import '../styles/mix-interface.css'
 
 type WorkItem = GeneratedMusic & {
@@ -50,6 +50,7 @@ type MixIconName = 'play' | 'pause' | 'prev' | 'next' | 'wave'
 const DESIGN_WIDTH = 1366
 const DESIGN_HEIGHT = 1014
 const SONG_TITLE_MAX_CHARS = 5
+const MIX_INACTIVITY_TIMEOUT_MS = 60 * 1000
 const headerLeftIcon = headerLeftIconRaw.replace('viewBox="100 98 50 43"', 'viewBox="96 96 56 52"')
 
 const coverImages = [
@@ -250,6 +251,8 @@ export default function MixInterfacePage() {
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
   const customInputRef = useRef<HTMLInputElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const autoPlayWorkIdRef = useRef<string | null>(null)
+  const inactivityTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     let rafId = 0
@@ -267,6 +270,29 @@ export default function MixInterfacePage() {
     return () => {
       window.removeEventListener('resize', handleResize)
       if (rafId !== 0) window.cancelAnimationFrame(rafId)
+    }
+  }, [])
+
+  useEffect(() => {
+    const returnToStandby = () => {
+      const standbyUrl = new URL(window.location.href)
+      standbyUrl.searchParams.set('mode', 'standby')
+      window.history.replaceState(null, '', `${standbyUrl.pathname}${standbyUrl.search}${standbyUrl.hash}`)
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }
+    const resetInactivityTimer = () => {
+      if (inactivityTimerRef.current !== null) window.clearTimeout(inactivityTimerRef.current)
+      inactivityTimerRef.current = window.setTimeout(returnToStandby, MIX_INACTIVITY_TIMEOUT_MS)
+    }
+    const activityEvents = ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart', 'touchmove', 'scroll'] as const
+    const listenerOptions = { passive: true, capture: true }
+
+    resetInactivityTimer()
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetInactivityTimer, listenerOptions))
+
+    return () => {
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetInactivityTimer, listenerOptions))
+      if (inactivityTimerRef.current !== null) window.clearTimeout(inactivityTimerRef.current)
     }
   }, [])
 
@@ -363,14 +389,32 @@ export default function MixInterfacePage() {
   }, [])
 
   useEffect(() => {
+    const audio = audioRef.current
+    const shouldAutoPlay = selectedWorkId !== null
+      && autoPlayWorkIdRef.current === selectedWorkId
+      && !selectedWork?.isPending
+      && Boolean(selectedWork?.music_url)
+
     setCurrentTime(0)
     setDuration(0)
     setPlaying(false)
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.currentTime = 0
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+      if (shouldAutoPlay) {
+        void audio.play().then(() => {
+          if (autoPlayWorkIdRef.current === selectedWorkId) autoPlayWorkIdRef.current = null
+          setPlaying(true)
+          setError('')
+        }).catch((err: unknown) => {
+          if (autoPlayWorkIdRef.current === selectedWorkId) autoPlayWorkIdRef.current = null
+          setError(err instanceof Error ? err.message : '播放失败')
+        })
+      }
+    } else if (autoPlayWorkIdRef.current === selectedWorkId) {
+      autoPlayWorkIdRef.current = null
     }
-  }, [selectedWorkId])
+  }, [selectedWorkId, selectedWork?.isPending, selectedWork?.music_url])
 
   const scrollReferences = (direction: -1 | 1) => {
     referenceScrollRef.current?.scrollBy({
@@ -430,14 +474,29 @@ export default function MixInterfacePage() {
 
   const handleWorkSelect = (work: WorkItem) => {
     if (work.isPending) return
+    const nextWorkId = work.songId ?? work.id
     if (work.missingMusic || !work.music_url) {
-      setSelectedWorkId(work.songId ?? work.id)
+      autoPlayWorkIdRef.current = null
+      setSelectedWorkId(nextWorkId)
       setPlaying(false)
       setError('这首AI混曲缺少关联音乐，无法播放')
       return
     }
-    setSelectedWorkId(work.songId ?? work.id)
-    setMessage('已切换到底部进度条')
+    autoPlayWorkIdRef.current = nextWorkId
+    setSelectedWorkId(nextWorkId)
+    setMessage('正在播放AI混曲')
+    if (nextWorkId === selectedWorkId) {
+      const audio = audioRef.current
+      if (!audio) return
+      void audio.play().then(() => {
+        if (autoPlayWorkIdRef.current === nextWorkId) autoPlayWorkIdRef.current = null
+        setPlaying(true)
+        setError('')
+      }).catch((err: unknown) => {
+        if (autoPlayWorkIdRef.current === nextWorkId) autoPlayWorkIdRef.current = null
+        setError(err instanceof Error ? err.message : '播放失败')
+      })
+    }
   }
 
   const togglePlay = () => {
@@ -542,7 +601,7 @@ export default function MixInterfacePage() {
             <img src={headerRightPanel} className="mix-layer-img" alt="" aria-hidden />
             <img src={headerRightIcon} className="mix-title-icon mix-title-icon-ranking" alt="" aria-hidden />
             <div className="mix-title-copy mix-title-copy-right">
-              <strong>AI混曲榜单</strong>
+              <strong>AI共创榜单</strong>
             </div>
           </header>
 
@@ -640,10 +699,10 @@ export default function MixInterfacePage() {
           <aside className="mix-ranking-section" aria-label="AI混曲榜单">
             <svg className="mix-ranking-panel" viewBox="0 0 495 708" fill="none" aria-hidden>
               <image href={rankingPanel} x="0" y="0" width="495" height="708" />
-              <text className="mix-ranking-svg-title" x="73" y="107">AI共创歌曲榜单</text>
+              <text className="mix-ranking-svg-title" x="73" y="107">欢迎收听</text>
             </svg>
             <div className="mix-ranking-list">
-              {(loadingWorks || loadingSongs) && <div className="mix-ranking-empty">加载AI混曲榜单中...</div>}
+              {(loadingWorks || loadingSongs) && aiRankWorks.length === 0 && <div className="mix-ranking-empty">加载AI混曲榜单中...</div>}
               {!loadingWorks && !loadingSongs && aiRankWorks.length === 0 && <div className="mix-ranking-empty">暂无AI混曲，先生成一首吧</div>}
               {aiRankWorks.map((work, index) => {
                 const selected = selectedWork?.id === work.id

@@ -5,12 +5,12 @@
 
 @keyframes eraSongBallFloat {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
+  50% { transform: translateY(-13px); }
 }
 
 @keyframes recordFloat {
   0%, 100% { transform: translate(var(--record-x, 0), var(--record-y, 0)); }
-  50% { transform: translate(var(--record-x, 0), calc(var(--record-y, 0) - 8px)); }
+  50% { transform: translate(var(--record-x, 0), calc(var(--record-y, 0) - 15px)); }
 }
 
 @keyframes overlayCircleFloatA {

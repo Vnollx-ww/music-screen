@@ -87,8 +87,20 @@ function hashString(value: string) {
   return hash >>> 0
 }
 
+function createSeededRandom(seed: string) {
+  let state = hashString(seed)
+
+  return () => {
+    state += 0x6D2B79F5
+    let value = state
+    value = Math.imul(value ^ (value >>> 15), value | 1)
+    value ^= value + Math.imul(value ^ (value >>> 7), value | 61)
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296
+  }
+}
+
 function seededUnit(seed: string) {
-  return hashString(seed) / 4294967295
+  return createSeededRandom(seed)()
 }
 
 function createBallSvg(svg: string, viewBox: string) {
@@ -126,21 +138,50 @@ function getDiamondHorizontalBounds(y: number) {
   }
 }
 
-function getCandidatePosition(song: Song, attempt: number): Position {
-  const minY = targetDiamond.top.y + BALL_EDGE * 2
-  const maxY = targetDiamond.bottom.y - BALL_EDGE * 2
-  const seed = `${song.id}:target:${attempt}`
-  const centerY = minY + seededUnit(seed + ':y') * (maxY - minY)
-  const upperBounds = getDiamondHorizontalBounds(centerY - BALL_EDGE)
-  const lowerBounds = getDiamondHorizontalBounds(centerY + BALL_EDGE)
-  const minX = Math.max(upperBounds.left, lowerBounds.left) + BALL_EDGE
-  const maxX = Math.min(upperBounds.right, lowerBounds.right) - BALL_EDGE
-  const centerX = minX + seededUnit(seed + ':x') * Math.max(0, maxX - minX)
+function getRandomCandidatePosition(random: () => number): Position {
+  const minX = targetDiamond.left.x + BALL_EDGE
+  const maxX = targetDiamond.right.x - BALL_EDGE
+  const minY = targetDiamond.top.y + BALL_EDGE
+  const maxY = targetDiamond.bottom.y - BALL_EDGE
+
+  for (let i = 0; i < 24; i += 1) {
+    const centerX = minX + random() * (maxX - minX)
+    const centerY = minY + random() * (maxY - minY)
+    const upperBounds = getDiamondHorizontalBounds(centerY - BALL_EDGE)
+    const lowerBounds = getDiamondHorizontalBounds(centerY + BALL_EDGE)
+    const safeLeft = Math.max(upperBounds.left, lowerBounds.left) + BALL_EDGE
+    const safeRight = Math.min(upperBounds.right, lowerBounds.right) - BALL_EDGE
+
+    if (centerX >= safeLeft && centerX <= safeRight) {
+      return {
+        x: Math.round(centerX - BALL_SIZE / 2),
+        y: Math.round(centerY - BALL_SIZE / 2),
+      }
+    }
+  }
+
+  const fallbackY = minY + random() * (maxY - minY)
+  const upperBounds = getDiamondHorizontalBounds(fallbackY - BALL_EDGE)
+  const lowerBounds = getDiamondHorizontalBounds(fallbackY + BALL_EDGE)
+  const safeLeft = Math.max(upperBounds.left, lowerBounds.left) + BALL_EDGE
+  const safeRight = Math.min(upperBounds.right, lowerBounds.right) - BALL_EDGE
+  const fallbackX = safeLeft + random() * Math.max(0, safeRight - safeLeft)
 
   return {
-    x: Math.round(centerX - BALL_SIZE / 2),
-    y: Math.round(centerY - BALL_SIZE / 2),
+    x: Math.round(fallbackX - BALL_SIZE / 2),
+    y: Math.round(fallbackY - BALL_SIZE / 2),
   }
+}
+
+function getCandidatePosition(song: Song, attempt: number): Position {
+  return getRandomCandidatePosition(createSeededRandom(`${song.id}:target:${attempt}`))
+}
+
+function chooseCandidate(song: Song, minDistance: number, candidates: Position[]) {
+  if (candidates.length === 0) return null
+
+  const index = Math.floor(seededUnit(`${song.id}:pick:${minDistance}:${candidates.length}`) * candidates.length) % candidates.length
+  return candidates[index]
 }
 
 function getSongCreatedTime(song: Song) {
@@ -165,6 +206,10 @@ function getNearestDistance(position: Position, placed: Position[]) {
   return Math.min(...placed.map((placedPosition) => getCenterDistance(position, placedPosition)))
 }
 
+function getPlacementCandidates(song: Song) {
+  return Array.from({ length: POSITION_ATTEMPTS }, (_, attempt) => getCandidatePosition(song, attempt))
+}
+
 function createTargetPositions(songs: Song[]) {
   const positions = new Map<string, Position>()
   const placed: Position[] = []
@@ -173,10 +218,12 @@ function createTargetPositions(songs: Song[]) {
     let selectedPosition: Position | null = null
     let bestPosition = getCandidatePosition(song, 0)
     let bestDistance = getNearestDistance(bestPosition, placed)
+    const candidates = getPlacementCandidates(song)
 
     for (const minDistance of RELAXED_CENTER_DISTANCES) {
-      for (let attempt = 0; attempt < POSITION_ATTEMPTS; attempt += 1) {
-        const candidate = getCandidatePosition(song, attempt)
+      const acceptedPositions: Position[] = []
+
+      for (const candidate of candidates) {
         const candidateDistance = getNearestDistance(candidate, placed)
 
         if (candidateDistance > bestDistance) {
@@ -185,10 +232,11 @@ function createTargetPositions(songs: Song[]) {
         }
 
         if (candidateDistance >= minDistance) {
-          selectedPosition = candidate
-          break
+          acceptedPositions.push(candidate)
         }
       }
+
+      selectedPosition = chooseCandidate(song, minDistance, acceptedPositions)
 
       if (selectedPosition) break
     }

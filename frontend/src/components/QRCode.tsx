@@ -8,7 +8,7 @@ function QRCode() {
 
   return (
     <div className="absolute bottom-[40px] right-[66px] z-30 flex w-[138px] flex-col items-center gap-3">
-      <div className="flex h-[132px] w-[138px] items-center justify-center bg-[#D9D9D9]">
+      <div className="flex h-[132px] w-[138px] items-center justify-center overflow-hidden rounded-[18px] bg-[#D9D9D9]">
         <QRCodeSVG
           value={url}
           size={98}

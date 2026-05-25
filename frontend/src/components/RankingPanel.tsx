@@ -43,6 +43,8 @@ interface PanelLayout {
 type ClassicEra = Exclude<Era, 'ai'>
 
 const BIGSCREEN_TITLE_MAX_CHARS = 7
+const AI_RANKING_ICON_SIZE = 90
+const CLASSIC_RANKING_ICON_SIZE = 41
 
 const classicEraIcons: Record<ClassicEra, string> = {
   vinyl: vinylIcon,
@@ -60,8 +62,8 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     rowCenters: [186.5, 272.5, 361.5, 442.5, 531.5],
     rowLeft: 87,
     rowWidth: 354,
-    iconCx: 120,
-    iconRadius: 24,
+    iconCx: 132,
+    iconRadius: 40,
     badgeLeft: 335,
     badgeWidth: 86,
     badgeHeight: 26,
@@ -112,7 +114,7 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const cfg = eraConfig[song.era]
   const iconLocalCx = layout.iconCx - layout.rowLeft
   const badgeLocalLeft = layout.badgeLeft - layout.rowLeft
-  const iconSize = song.era === 'ai' ? 90 : layout.iconRadius * 2
+  const iconSize = song.era === 'ai' ? AI_RANKING_ICON_SIZE : CLASSIC_RANKING_ICON_SIZE
   const contentLeft = iconLocalCx + layout.iconRadius + 14
   const contentRight = badgeLocalLeft - 8
   const badgeY = 37.5 - layout.badgeHeight / 2 + layout.badgeOffsetY

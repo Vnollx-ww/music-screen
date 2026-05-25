@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ChangeEvent, SVGProps } from 'react'
 import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useSongs } from '../hooks/useSongs'
-import { fetchGeneratedMusic, generateMusic } from '../lib/music'
+import { fetchGeneratedMusic, generateMusic, preprocessMusicCover } from '../lib/music'
 import type { GeneratedMusic } from '../lib/music'
 import { calcScore, insertSong } from '../lib/songs'
 import type { Song } from '../types/song'
@@ -46,12 +46,42 @@ type WorkItem = GeneratedMusic & {
 }
 
 type MixIconName = 'play' | 'pause' | 'prev' | 'next' | 'wave'
+type GenerationStepId = 'start' | 'preprocess' | 'generate' | 'complete'
+type GenerationStep = {
+  id: GenerationStepId
+  title: string
+  description: string
+}
 
 const DESIGN_WIDTH = 1366
 const DESIGN_HEIGHT = 1014
 const SONG_TITLE_MAX_CHARS = 5
 const RANKING_SONG_TITLE_MAX_CHARS = 7
 const MIX_INACTIVITY_TIMEOUT_MS = 60 * 1000
+const GENERATION_STEP_DELAY_MS = 420
+const GENERATION_COMPLETE_HIDE_MS = 1600
+const generationSteps: GenerationStep[] = [
+  {
+    id: 'start',
+    title: '开始生成',
+    description: '正在整理热门歌曲与风格参数',
+  },
+  {
+    id: 'preprocess',
+    title: '歌曲正在预处理',
+    description: '正在提取参考歌曲特征与歌词结构',
+  },
+  {
+    id: 'generate',
+    title: 'AI正在生成中',
+    description: '正在合成全新的AI混曲音频',
+  },
+  {
+    id: 'complete',
+    title: '生成完成',
+    description: '混曲已保存，可以立即试听或推榜',
+  },
+]
 const headerLeftIcon = headerLeftIconRaw.replace('viewBox="100 98 50 43"', 'viewBox="96 96 56 52"')
 const headerLeftPanel = headerLeftPanelRaw
   .split('M56 108C56 93.6406 67.6406 82 82 82H490C504.359 82 516 93.6406 516 108V122V135C516 149.912 503.912 162 489 162H83.0001C68.0884 162 56 149.912 56 135V108Z')
@@ -244,6 +274,10 @@ function songLabel(song: Song): string {
   return `${song.title} · ${song.artist}`
 }
 
+function waitFor(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms))
+}
+
 export default function MixInterfacePage() {
   const [scale, setScale] = useState(() => {
     if (typeof window === 'undefined') return 1
@@ -266,12 +300,14 @@ export default function MixInterfacePage() {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [generationStepId, setGenerationStepId] = useState<GenerationStepId | null>(null)
   const [songTitleTooltip, setSongTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
   const customInputRef = useRef<HTMLInputElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoPlayWorkIdRef = useRef<string | null>(null)
   const inactivityTimerRef = useRef<number | null>(null)
+  const generationCloseTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
     let rafId = 0
@@ -331,6 +367,10 @@ export default function MixInterfacePage() {
     })
     return map
   }, [works])
+  const selectedReferenceMusic = useMemo(
+    () => (selectedReference?.music_id ? generatedMusicById.get(selectedReference.music_id) ?? null : null),
+    [generatedMusicById, selectedReference],
+  )
   const aiSongs = useMemo(
     () => [...songs.filter((song) => song.era === 'ai')].sort((a, b) => calcScore(b) - calcScore(a)),
     [songs],
@@ -355,9 +395,10 @@ export default function MixInterfacePage() {
     if (!selectedReference) return '请先选择一首社区热门歌曲'
     if (!selectedReference.music_id) return `《${selectedReference.title}》没有关联音频，无法作为AI混曲参考`
     if (loadingWorks) return '参考音频信息还在加载中，请稍后再试'
-    if (!generatedMusicById.has(selectedReference.music_id)) return `《${selectedReference.title}》关联音频不存在或已过期，无法作为AI混曲参考`
+    if (!selectedReferenceMusic) return `《${selectedReference.title}》关联音频不存在或已过期，无法作为AI混曲参考`
+    if (!selectedReferenceMusic.music_url) return `《${selectedReference.title}》关联音频暂时无法访问，无法作为AI混曲参考`
     return ''
-  }, [generatedMusicById, loadingWorks, selectedReference])
+  }, [loadingWorks, selectedReference, selectedReferenceMusic])
 
   useEffect(() => {
     if (!selectedReferenceId && referenceSongs.length > 0) setSelectedReferenceId(referenceSongs[0].id)
@@ -405,6 +446,10 @@ export default function MixInterfacePage() {
     return () => {
       stopped = true
     }
+  }, [])
+
+  useEffect(() => () => {
+    if (generationCloseTimerRef.current !== null) window.clearTimeout(generationCloseTimerRef.current)
   }, [])
 
   useEffect(() => {
@@ -459,30 +504,54 @@ export default function MixInterfacePage() {
       setError(selectedReferenceAudioUnavailableReason)
       return
     }
-    if (!selectedReference?.music_id) return
+    if (!selectedReference?.music_id || !selectedReferenceMusic?.music_url) return
     const stylePrompt = (customStyleOpen && customStyle.trim() ? customStyle.trim() : selectedStyle.prompt).slice(0, 360)
     const prompt = `参考《${selectedReference.title}》生成${stylePrompt}风格AI混曲，适合现场播放和榜单展示。`.slice(0, 300)
     const title = `${selectedReference.title} AI混曲`
     const pendingId = `pending-${Date.now()}`
+    const referenceMusic = selectedReferenceMusic
+    const workIndex = works.length
 
     setGenerating(true)
     setError('')
     setMessage('AI混曲生成中...')
+    setGenerationStepId('start')
+    if (generationCloseTimerRef.current !== null) {
+      window.clearTimeout(generationCloseTimerRef.current)
+      generationCloseTimerRef.current = null
+    }
     setWorks((prev) => [createPendingWorkItem(pendingId, prompt, title), ...prev])
 
-    void generateMusic({
-      model: 'music-cover',
-      prompt,
-      reference_music_id: selectedReference.music_id,
-    })
+    void (async () => {
+      await waitFor(GENERATION_STEP_DELAY_MS)
+      setGenerationStepId('preprocess')
+      const preprocessResult = await preprocessMusicCover({
+        audio_url: referenceMusic.music_url,
+      })
+      const formattedLyrics = preprocessResult.formatted_lyrics?.trim().slice(0, 1000)
+      if (!formattedLyrics || formattedLyrics.length < 10) throw new Error('翻唱前处理未返回歌词，无法生成翻唱音乐')
+      setGenerationStepId('generate')
+      return generateMusic({
+        model: 'music-cover',
+        prompt,
+        lyrics: formattedLyrics,
+        cover_feature_id: preprocessResult.cover_feature_id,
+      })
+    })()
       .then((record) => {
-        const item = toWorkItem(record, works.length, title)
+        const item = toWorkItem(record, workIndex, title)
         setWorks((prev) => prev.map((work) => (work.id === pendingId ? item : work)))
         setSelectedWorkId(item.id)
         setMessage('AI混曲已生成')
+        setGenerationStepId('complete')
+        generationCloseTimerRef.current = window.setTimeout(() => {
+          setGenerationStepId(null)
+          generationCloseTimerRef.current = null
+        }, GENERATION_COMPLETE_HIDE_MS)
       })
       .catch((err: unknown) => {
         setWorks((prev) => prev.filter((work) => work.id !== pendingId))
+        setGenerationStepId(null)
         setError(err instanceof Error ? err.message : '生成失败')
         setMessage('')
       })
@@ -619,6 +688,9 @@ export default function MixInterfacePage() {
   }
 
   const footerCurrentTitle = selectedWork?.title ?? selectedReference?.title
+  const generationStepIndex = generationStepId ? generationSteps.findIndex((step) => step.id === generationStepId) : -1
+  const generationCurrentStep = generationStepIndex >= 0 ? generationSteps[generationStepIndex] : null
+  const generationProgressPercent = generationStepIndex >= 0 ? ((generationStepIndex + 1) / generationSteps.length) * 100 : 0
 
   return (
     <main className="mix-page">
@@ -808,6 +880,41 @@ export default function MixInterfacePage() {
           {(error || songsError || message) && (
             <div className={`mix-status${error || songsError ? ' is-error' : ''}`}>
               {error || songsError || message}
+            </div>
+          )}
+
+          {generationCurrentStep && (
+            <div className="mix-generation-modal" role="status" aria-live="polite">
+              <div className="mix-generation-card">
+                <div className="mix-generation-orb" aria-hidden>
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className="mix-generation-copy">
+                  <span>AI MIXING</span>
+                  <strong>{generationCurrentStep.title}</strong>
+                  <p>{generationCurrentStep.description}</p>
+                </div>
+                <div className="mix-generation-progress" style={{ '--mix-generation-progress': `${generationProgressPercent}%` } as CSSProperties} aria-hidden>
+                  <span />
+                </div>
+                <ol className="mix-generation-steps">
+                  {generationSteps.map((step, index) => {
+                    const active = index === generationStepIndex
+                    const done = index < generationStepIndex
+                    return (
+                      <li className={`${active ? 'is-active' : ''}${done ? ' is-done' : ''}`} key={step.id}>
+                        <span>{index + 1}</span>
+                        <div>
+                          <strong>{step.title}</strong>
+                          <small>{step.description}</small>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
             </div>
           )}
 

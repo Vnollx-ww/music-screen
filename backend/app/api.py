@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFil
 from sqlalchemy.orm import Session
 
 from .database import get_db
-from .music_service import build_generated_music_out, generate_music, get_generated_music, list_generated_music, preprocess_music_cover, upload_source_audio
+from .music_service import build_generated_music_out, delete_generated_music, generate_music, get_generated_music, list_generated_music, preprocess_music_cover, upload_source_audio
 from .realtime import manager
 from .schemas import CreateSongRequest, GeneratedMusicOut, GenerateMusicRequest, MusicCoverPreprocessOut, MusicCoverPreprocessRequest, SongEvent, SongOut, UpdateSongRequest
 from .services import create_song, delete_song, get_client_ip, list_songs, update_song, vote_song
@@ -83,6 +83,16 @@ def get_music_list(db: Session = Depends(get_db)) -> list[GeneratedMusicOut]:
 @router.get("/music/{music_id}", response_model=GeneratedMusicOut)
 def get_music(music_id: str, db: Session = Depends(get_db)) -> GeneratedMusicOut:
     return build_generated_music_out(get_generated_music(db, music_id))
+
+
+@router.delete("/music/{music_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_music(music_id: str, db: Session = Depends(get_db)) -> Response:
+    unlinked_songs = delete_generated_music(db, music_id)
+    for song in unlinked_songs:
+        song_out = SongOut.model_validate(song)
+        event = SongEvent(type="update", song=song_out)
+        await manager.broadcast_json(event.model_dump(mode="json"))
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.websocket("/ws")

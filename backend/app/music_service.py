@@ -12,7 +12,7 @@ from minio.error import S3Error
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .models import GeneratedMusic
+from .models import GeneratedMusic, Song
 from .schemas import GeneratedMusicOut, GenerateMusicRequest, MusicCoverPreprocessOut, MusicCoverPreprocessRequest
 from .settings import Settings, get_settings
 
@@ -155,6 +155,23 @@ def get_generated_music(db: Session, music_id: str) -> GeneratedMusic:
     if record.status != "ready":
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="生成音乐不可用")
     return record
+
+
+def delete_generated_music(db: Session, music_id: str) -> list[Song]:
+    record = db.get(GeneratedMusic, music_id)
+    if record is None or record.status == "deleted":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="源文件素材不存在")
+
+    linked_songs = list(db.scalars(select(Song).where(Song.music_id == music_id)))
+    for song in linked_songs:
+        song.music_id = None
+
+    record.status = "deleted"
+    record.deleted_at = datetime.now()
+    db.commit()
+    for song in linked_songs:
+        db.refresh(song)
+    return linked_songs
 
 
 def list_generated_music(db: Session) -> list[GeneratedMusic]:

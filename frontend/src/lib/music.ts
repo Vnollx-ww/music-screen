@@ -84,3 +84,9 @@ export async function uploadSourceAudio(file: File, title: string, artist?: stri
   if (artist?.trim()) formData.append('artist', artist.trim())
   return apiFormRequest<GeneratedMusic>('/music/source-upload', formData)
 }
+
+export async function deleteGeneratedMusic(musicId: string): Promise<void> {
+  await apiRequest<void>(`/music/${encodeURIComponent(musicId)}`, {
+    method: 'DELETE',
+  })
+}

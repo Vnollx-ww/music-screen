@@ -327,6 +327,44 @@
   transform: translate(-43px, 14px);
 }
 
+.mix-song-title.is-truncated {
+  cursor: help;
+}
+
+.mix-song-title-tooltip {
+  position: absolute;
+  z-index: 1000;
+  max-width: 280px;
+  padding: 8px 12px;
+  border: 1px solid rgba(41, 231, 229, 0.44);
+  border-radius: 12px;
+  background: rgba(11, 13, 22, 0.92);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38), 0 0 24px rgba(41, 231, 229, 0.16);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, calc(-100% - 10px));
+  backdrop-filter: blur(12px);
+}
+
+.mix-song-title-tooltip::after {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid rgba(41, 231, 229, 0.44);
+  border-bottom: 1px solid rgba(41, 231, 229, 0.44);
+  background: rgba(11, 13, 22, 0.92);
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
 .mix-empty-card {
   display: grid;
   width: 660px;
@@ -432,9 +470,11 @@
   transform: translateY(-6px) scale(1.04);
 }
 
-.mix-style-card:hover {
-  filter: drop-shadow(0 0 18px rgba(252, 175, 228, 0.2));
-  transform: translateY(-3px);
+@media (hover: hover) and (pointer: fine) {
+  .mix-style-card:hover:not(.is-selected) {
+    filter: drop-shadow(0 0 18px rgba(252, 175, 228, 0.2));
+    transform: translateY(-3px);
+  }
 }
 
 .mix-style-card-bg {
@@ -782,6 +822,12 @@
 .mix-footer-player button svg {
   width: 24px;
   height: 24px;
+}
+
+.mix-footer-player button svg.mix-footer-play-icon {
+  width: 15px;
+  height: 22px;
+  transform: translateX(2px);
 }
 
 .mix-footer-player .mix-footer-play {

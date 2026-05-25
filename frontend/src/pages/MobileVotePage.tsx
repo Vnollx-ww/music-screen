@@ -31,6 +31,7 @@ const MAX_VISIBLE_ROWS = 10
 const PANEL_CONTENT_BOTTOM = 837
 const ROW_BOTTOM_PADDING = 35
 const PAGE_SIZE = 20
+const MOBILE_VOTE_TITLE_MAX_CHARS = 7
 const floatingVoteBackgroundSvg = decorateMobileVoteBackgroundSvg(bgSvg)
 
 type VoteError = {
@@ -60,6 +61,16 @@ function getVoteErrorMessage(err: unknown): string {
   return '投票失败，请稍后重试'
 }
 
+function getDisplaySongTitle(title: string): string {
+  const chars = Array.from(title)
+  if (chars.length <= MOBILE_VOTE_TITLE_MAX_CHARS) return title
+  return `${chars.slice(0, MOBILE_VOTE_TITLE_MAX_CHARS).join('')}…`
+}
+
+function isSongTitleTruncated(title: string): boolean {
+  return Array.from(title).length > MOBILE_VOTE_TITLE_MAX_CHARS
+}
+
 type MobileVoteRowProps = {
   song: Song
   index: number
@@ -69,6 +80,8 @@ type MobileVoteRowProps = {
   isLast: boolean
   errorMessage: string
   onVote: (song: Song) => void
+  onTitleTooltipShow: (title: string, element: HTMLElement) => void
+  onTitleTooltipHide: () => void
 }
 
 const MobileVoteRow = memo(function MobileVoteRow({
@@ -80,17 +93,26 @@ const MobileVoteRow = memo(function MobileVoteRow({
   isLast,
   errorMessage,
   onVote,
+  onTitleTooltipShow,
+  onTitleTooltipHide,
 }: MobileVoteRowProps) {
   const top = index * ROW_HEIGHT
   const bubbleUrl = song.era === 'ai' ? bubble5Url : BUBBLE_URLS[index % BUBBLE_URLS.length]
   const showError = errorMessage.length > 0
+  const titleIsTruncated = isSongTitleTruncated(song.title)
 
   return (
     <div className="mv-row" style={{ top }}>
       <img src={bubbleUrl} className="mv-row-bubble" alt="" aria-hidden />
 
       <div className="mv-row-info">
-        <h2 className="mv-row-title">{song.title}</h2>
+        <h2
+          className={`mv-row-title${titleIsTruncated ? ' mv-row-title-truncated' : ''}`}
+          onMouseEnter={titleIsTruncated ? (event) => onTitleTooltipShow(song.title, event.currentTarget) : undefined}
+          onMouseLeave={titleIsTruncated ? onTitleTooltipHide : undefined}
+        >
+          {getDisplaySongTitle(song.title)}
+        </h2>
         <div className="mv-row-meta">
           <span className="mv-row-artist">{song.artist}</span>
           <span className="mv-row-votes">{song.votes} 票</span>
@@ -134,6 +156,7 @@ export default function MobileVotePage() {
   const [errMsg, setErrMsg] = useState('')
   const [voteError, setVoteError] = useState<VoteError | null>(null)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [titleTooltip, setTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
   const scale = useFitToWidth(390)
 
   const rankedSongs = useMemo(() => {
@@ -171,7 +194,25 @@ export default function MobileVotePage() {
   }, [upsertSong, votingId])
 
   const rankedSongCount = rankedSongs.length
+  const handleTitleTooltipShow = useCallback((text: string, element: HTMLElement) => {
+    const rect = element.getBoundingClientRect()
+    const canvas = element.closest('.mv-canvas')
+    if (!(canvas instanceof HTMLElement)) return
+    const canvasRect = canvas.getBoundingClientRect()
+    const currentScale = scale || 1
+    setTitleTooltip({
+      text,
+      left: (rect.left + rect.width / 2 - canvasRect.left) / currentScale,
+      top: (rect.top - canvasRect.top) / currentScale,
+    })
+  }, [scale])
+
+  const handleTitleTooltipHide = useCallback(() => {
+    setTitleTooltip(null)
+  }, [])
+
   const handleListScroll = useCallback((event: UIEvent<HTMLDivElement>) => {
+    setTitleTooltip(null)
     const list = event.currentTarget
     const distanceToBottom = list.scrollHeight - list.scrollTop - list.clientHeight
 
@@ -267,6 +308,8 @@ export default function MobileVotePage() {
                     isLast={i === visibleRankedSongs.length - 1 && !hasMoreSongs}
                     errorMessage={voteError?.songId === song.id ? voteError.message : ''}
                     onVote={handleVote}
+                    onTitleTooltipShow={handleTitleTooltipShow}
+                    onTitleTooltipHide={handleTitleTooltipHide}
                   />
                 ))}
               </div>
@@ -276,6 +319,11 @@ export default function MobileVotePage() {
           {/* 底部 v 形提示 */}
           {showFooterChevron && (
             <img src={downChevronUrl} className="mv-chevron" alt="" aria-hidden />
+          )}
+          {titleTooltip && (
+            <div className="mv-row-title-tooltip" style={{ left: titleTooltip.left, top: titleTooltip.top }}>
+              {titleTooltip.text}
+            </div>
           )}
         </div>
       </div>

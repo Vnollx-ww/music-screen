@@ -34,6 +34,13 @@ const submitEraOptions: SubmitEraOption[] = [
 
 const floatingSubmitBaseSvg = decorateMobileSubmitBaseSvg(submitBaseSvg)
 const SUBMIT_ANIMATION_MS = 2600
+const ERA_PILL_TITLE_MAX_CHARS = 6
+
+function getEraPillDisplayTitle(value: string) {
+  const chars = Array.from(value)
+  if (chars.length <= ERA_PILL_TITLE_MAX_CHARS) return value
+  return `${chars.slice(0, ERA_PILL_TITLE_MAX_CHARS).join('')}…`
+}
 
 export default function MobileSubmitPage() {
   const [title, setTitle] = useState('')
@@ -121,7 +128,7 @@ export default function MobileSubmitPage() {
     if (errMsg) setErrMsg('')
   }
 
-  const selectedEraLabel = title.trim() || '请输入歌曲名'
+  const selectedEraLabel = title.trim() ? getEraPillDisplayTitle(title.trim()) : '请输入歌曲名'
   const sourceAudioLabel = sourceAudioFile ? sourceAudioFile.name : '上传音频源文件（可选）'
   const feedback = errMsg
   const isUploadLocked = stage !== 'form'
@@ -151,6 +158,8 @@ export default function MobileSubmitPage() {
           <h1 className="ms-title">上传歌曲</h1>
 
           {era && <SubmitTopRecord era={era} className="ms-top-icon" />}
+
+          <InlineSvg html={floatingSubmitBaseSvg} className="ms-era-pill-overlay mobile-floating-svg" />
 
           <div className="ms-era-pill-label">{selectedEraLabel}</div>
 

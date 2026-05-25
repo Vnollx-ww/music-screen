@@ -7,6 +7,7 @@ import QRCode from '../components/QRCode'
 import EraDiamondFocus from '../components/EraDiamondFocus'
 import EraSongBalls from '../components/EraSongBalls'
 import OverlayAboveCircles from '../components/OverlayAboveCircles'
+import AiTopRecord from '../components/AiTopRecord'
 import { useSongs } from '../hooks/useSongs'
 import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useResponsiveScale } from '../hooks/useResponsiveScale'
@@ -88,11 +89,15 @@ export default function DashboardPage() {
           <CenterRecords songs={classic} />
         </div>
 
+        <div className={'pointer-events-none absolute z-[16] h-[214px] w-[214px] transition-opacity duration-500 ' + (isFocusActive ? 'opacity-50' : 'opacity-100')} style={{ left: 1136, top: 245 }}>
+          <AiTopRecord song={ai[0] ?? null} />
+        </div>
+
         <div className={'absolute z-20 transition-opacity duration-500 ' + (isFocusActive ? 'opacity-50' : 'opacity-100')} style={{ left: 46, top: 168 }}>
           <RankingPanel title="代际歌曲榜" subtitle="GENERATIONAL HITS" songs={classic} variant="classic" />
         </div>
         <div className={'absolute z-20 transition-opacity duration-500 ' + (isFocusActive ? 'opacity-50' : 'opacity-100')} style={{ left: 1350, top: 164 }}>
-          <RankingPanel title="共创歌曲榜单" subtitle="AI CO-CREATION" songs={ai} variant="ai" />
+          <RankingPanel title="AI共创歌曲榜" subtitle="AI CO-CREATION" songs={ai} variant="ai" />
         </div>
 
         <QRCode />

@@ -30,6 +30,7 @@ export default function MobileHomePage() {
 
           <a href="?mode=standby" className="mh-action mh-action-ai">
             <span className="mh-action-title">AI共创混曲</span>
+            <span className="mh-action-note">建议去Ipad端体验</span>
           </a>
         </div>
       </div>

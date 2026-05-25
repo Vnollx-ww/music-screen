@@ -10,6 +10,7 @@ import cdIcon from '../svg/ranking-panel-left/icons/Cd.svg'
 import tapeIcon from '../svg/ranking-panel-left/icons/Tape.svg'
 import digitalIcon from '../svg/ranking-panel-left/icons/Digital.svg'
 import aiMusicBallOpaque from '../svg/ranking-panel-right/icons/AiMusicBallOpaque.svg'
+import '../styles/ranking-panel.css'
 
 interface Props {
   title: string
@@ -40,6 +41,8 @@ interface PanelLayout {
 }
 
 type ClassicEra = Exclude<Era, 'ai'>
+
+const BIGSCREEN_TITLE_MAX_CHARS = 7
 
 const classicEraIcons: Record<ClassicEra, string> = {
   vinyl: vinylIcon,
@@ -95,6 +98,16 @@ function ClassicRankingIcon({ era, size }: { era: ClassicEra; size: number }) {
   return <img src={classicEraIcons[era]} alt="" className="h-full w-full object-contain" style={{ width: size, height: size }} />
 }
 
+function getDisplayTitle(title: string): string {
+  const chars = Array.from(title)
+  if (chars.length <= BIGSCREEN_TITLE_MAX_CHARS) return title
+  return `${chars.slice(0, BIGSCREEN_TITLE_MAX_CHARS).join('')}…`
+}
+
+function isDisplayTitleTruncated(title: string): boolean {
+  return Array.from(title).length > BIGSCREEN_TITLE_MAX_CHARS
+}
+
 function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const cfg = eraConfig[song.era]
   const iconLocalCx = layout.iconCx - layout.rowLeft
@@ -104,6 +117,7 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
   const contentRight = badgeLocalLeft - 8
   const badgeY = 37.5 - layout.badgeHeight / 2 + layout.badgeOffsetY
   const votesY = Math.max(8, badgeY - 28)
+  const titleIsTruncated = isDisplayTitleTruncated(song.title)
 
   return (
     <>
@@ -122,8 +136,17 @@ function RankItem({ song, layout }: { song: Song; layout: PanelLayout }) {
         className="absolute flex flex-col justify-center gap-[4px]"
         style={{ left: contentLeft, width: contentRight - contentLeft, top: 0, bottom: 0 }}
       >
-        <h3 className="truncate text-[18px] font-bold leading-tight text-white">{song.title}</h3>
-        <p className="truncate leading-tight text-white/60" style={{ fontSize: layout.artistFontSize }}>{song.artist}</p>
+        <div className="ranking-title-shell">
+          <h3 className={'ranking-title' + (titleIsTruncated ? ' is-truncated' : '')}>
+            {getDisplayTitle(song.title)}
+          </h3>
+          {titleIsTruncated && (
+            <div className="ranking-title-tooltip">
+              {song.title}
+            </div>
+          )}
+        </div>
+        <p className="ranking-artist" style={{ fontSize: layout.artistFontSize }}>{song.artist}</p>
       </div>
 
       <div

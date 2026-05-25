@@ -8,6 +8,7 @@ import record3 from '../svg/center-records/Record3.svg'
 import record4 from '../svg/center-records/Record4.svg'
 import record5 from '../svg/center-records/Record5.svg'
 import record6 from '../svg/center-records/Record6.svg'
+import '../styles/center-records.css'
 
 interface Props {
   songs: Song[]
@@ -75,6 +76,7 @@ const PREFERRED_DISPLAY_SLOTS: Record<ClassicEra, DisplaySlot[]> = {
 
 const PILL_WIDTH = 179
 const PILL_HEIGHT = 42
+const CENTER_RECORD_TITLE_MAX_CHARS = 7
 
 function isClassicEra(era: Era): era is ClassicEra {
   return era !== 'ai'
@@ -110,6 +112,16 @@ function getRecordItems(songs: Song[]) {
   })
 }
 
+function getDisplayTitle(title: string) {
+  const chars = Array.from(title)
+  if (chars.length <= CENTER_RECORD_TITLE_MAX_CHARS) return title
+  return `${chars.slice(0, CENTER_RECORD_TITLE_MAX_CHARS).join('')}…`
+}
+
+function isDisplayTitleTruncated(title: string) {
+  return Array.from(title).length > CENTER_RECORD_TITLE_MAX_CHARS
+}
+
 function CenterRecords({ songs }: Props) {
   const items = getRecordItems(songs.slice(0, 5)).sort((a, b) => a.slot.layer - b.slot.layer)
 
@@ -139,23 +151,28 @@ function CenterRecords({ songs }: Props) {
 
       {items.map(({ song, slot }) => {
         const p = slot.pill
+        const titleIsTruncated = isDisplayTitleTruncated(song.title)
         return (
           <div
             key={`p-${slot.id}-${song.id}`}
-            className="absolute flex items-center overflow-hidden rounded-full backdrop-blur-[2.5px]"
+            className="center-record-pill-shell"
             style={{
               left: p.left,
               top: p.top,
               width: PILL_WIDTH,
               height: PILL_HEIGHT,
-              background: 'rgba(38, 37, 37, 0.67)',
-              border: '1px solid rgba(255, 255, 255, 0.4)',
-              boxShadow: '0 -19px 47px rgba(0, 0, 0, 0.06)',
             }}
           >
-            <div className="w-full truncate px-4 text-center text-[16px] font-medium tracking-wide text-white">
-              {song.title}
+            <div className="center-record-pill">
+              <div className={'center-record-pill-title' + (titleIsTruncated ? ' is-truncated' : '')}>
+                {getDisplayTitle(song.title)}
+              </div>
             </div>
+            {titleIsTruncated && (
+              <div className="center-record-title-tooltip">
+                {song.title}
+              </div>
+            )}
           </div>
         )
       })}

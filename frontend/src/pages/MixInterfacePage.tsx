@@ -49,6 +49,7 @@ type MixIconName = 'play' | 'pause' | 'prev' | 'next' | 'wave'
 
 const DESIGN_WIDTH = 1366
 const DESIGN_HEIGHT = 1014
+const SONG_TITLE_MAX_CHARS = 5
 const headerLeftIcon = headerLeftIconRaw.replace('viewBox="100 98 50 43"', 'viewBox="96 96 56 52"')
 
 const coverImages = [
@@ -103,8 +104,8 @@ function Icon({ name, className }: { name: MixIconName; className?: string }) {
 
   if (name === 'play') {
     return (
-      <svg {...props}>
-        <path d="M15.5 8.4c1.1.6 1.1 1.8 0 2.4l-6.2 3.6c-1.1.6-2-.1-2-1.2V6c0-1.2.9-1.8 2-1.2l6.2 3.6Z" fill="currentColor" />
+      <svg {...props} viewBox="964.5 291.474 16.5 19.052">
+        <path d="M981 301L964.5 310.526L964.5 291.474L981 301Z" fill="currentColor" />
       </svg>
     )
   }
@@ -144,6 +145,16 @@ function formatTime(value: number): string {
   const minutes = Math.floor(value / 60)
   const seconds = Math.floor(value % 60)
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function getDisplaySongTitle(title: string): string {
+  const chars = Array.from(title)
+  if (chars.length <= SONG_TITLE_MAX_CHARS) return title
+  return `${chars.slice(0, SONG_TITLE_MAX_CHARS).join('')}…`
+}
+
+function isSongTitleTruncated(title: string): boolean {
+  return Array.from(title).length > SONG_TITLE_MAX_CHARS
 }
 
 function toWorkItem(record: GeneratedMusic, index: number, title?: string): WorkItem {
@@ -231,6 +242,7 @@ export default function MixInterfacePage() {
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [songTitleTooltip, setSongTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
   const customInputRef = useRef<HTMLInputElement | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -476,6 +488,32 @@ export default function MixInterfacePage() {
       .finally(() => setPushing(false))
   }
 
+  const renderSongTitle = (title: string) => {
+    const truncated = isSongTitleTruncated(title)
+    return (
+      <strong
+        className={`mix-song-title${truncated ? ' is-truncated' : ''}`}
+        onMouseEnter={truncated ? (event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          const canvas = event.currentTarget.closest('.mix-canvas')
+          if (!(canvas instanceof HTMLElement)) return
+          const canvasRect = canvas.getBoundingClientRect()
+          const currentScale = scale || 1
+          setSongTitleTooltip({
+            text: title,
+            left: (rect.left + rect.width / 2 - canvasRect.left) / currentScale,
+            top: (rect.top - canvasRect.top) / currentScale,
+          })
+        } : undefined}
+        onMouseLeave={truncated ? () => setSongTitleTooltip(null) : undefined}
+      >
+        {getDisplaySongTitle(title)}
+      </strong>
+    )
+  }
+
+  const footerCurrentTitle = selectedWork?.title ?? selectedReference?.title
+
   return (
     <main className="mix-page">
       <div className="mix-scaler" style={{ height: DESIGN_HEIGHT * scale }}>
@@ -529,7 +567,7 @@ export default function MixInterfacePage() {
                     <span className="mix-reference-rank">TOP {index + 1}</span>
                     <span className="mix-reference-label">
                       <img src={option.label} alt="" aria-hidden />
-                      <strong>{song.title}</strong>
+                      {renderSongTitle(song.title)}
                     </span>
                   </button>
                 )
@@ -615,7 +653,7 @@ export default function MixInterfacePage() {
                   >
                     <span className="mix-ranking-play"><img src={playIcon} alt="" aria-hidden /></span>
                     <span className="mix-ranking-meta">
-                      <strong>{work.title}</strong>
+                      {renderSongTitle(work.title)}
                       <small>{work.isPending ? 'AI正在生成音乐...' : work.missingMusic ? '缺少关联音乐，无法播放' : work.prompt}</small>
                     </span>
                     <span className="mix-ranking-tag">{work.isPending ? 'WAIT' : work.missingMusic ? 'MISS' : `NO.${index + 1}`}</span>
@@ -630,14 +668,14 @@ export default function MixInterfacePage() {
             <div className="mix-footer-current">
               <img src={footerIcon} alt="" aria-hidden />
               <div>
-                <strong>{selectedWork?.title ?? selectedReference?.title ?? '等待选择混曲'}</strong>
-                <span>{selectedWork ? selectedWork.prompt : selectedReference ? songLabel(selectedReference) : '选择右侧AI混曲后，进度条会自动切换'}</span>
+                {footerCurrentTitle ? renderSongTitle(footerCurrentTitle) : <strong>等待选择混曲</strong>}
+                <span>{selectedWork ? selectedWork.prompt : selectedReference ? songLabel(selectedReference) : '请先选择右侧AI混曲'}</span>
               </div>
             </div>
             <div className="mix-footer-player">
               <button type="button" onClick={() => selectAdjacentWork(-1)} disabled={!selectedWork} aria-label="上一首"><Icon name="prev" /></button>
               <button className="mix-footer-play" type="button" onClick={togglePlay} disabled={!selectedWork?.music_url} aria-label={playing ? '暂停' : '播放'}>
-                <Icon name={playing ? 'pause' : 'play'} />
+                <Icon name={playing ? 'pause' : 'play'} className={playing ? undefined : 'mix-footer-play-icon'} />
               </button>
               <button type="button" onClick={() => selectAdjacentWork(1)} disabled={!selectedWork} aria-label="下一首"><Icon name="next" /></button>
               <span>{formatTime(currentTime)}</span>
@@ -674,6 +712,11 @@ export default function MixInterfacePage() {
             onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
             onEnded={() => setPlaying(false)}
           />
+          {songTitleTooltip && (
+            <div className="mix-song-title-tooltip" style={{ left: songTitleTooltip.left, top: songTitleTooltip.top }}>
+              {songTitleTooltip.text}
+            </div>
+          )}
         </section>
       </div>
     </main>

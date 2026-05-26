@@ -1070,6 +1070,7 @@
 
 .mix-player-push-button {
   position: relative;
+  left: -50px;
   width: 248px;
   height: 146px;
   cursor: pointer;

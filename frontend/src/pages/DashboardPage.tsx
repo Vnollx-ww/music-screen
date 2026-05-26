@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import StatusBar from '../components/StatusBar'
 import RankingPanel from '../components/RankingPanel'
 import CenterRecords from '../components/CenterRecords'
 import Toast from '../components/Toast'
@@ -13,8 +12,12 @@ import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useResponsiveScale } from '../hooks/useResponsiveScale'
 import type { Song } from '../types/song'
 import overlayBelow from '../svg/circles-overlay/OverlayBelow.svg'
+import dashboardTitle from '../svg/dashboard/标题.svg'
+import dashboardLogo from '../svg/dashboard/左上角logo.svg'
 
 const NEW_SONG_FOCUS_MS = 4500
+const DASHBOARD_BACKGROUND_URL = 'https://jonas-1387333607.cos.ap-shanghai.myqcloud.com/dashboard-background.png'
+const FALLBACK_DASHBOARD_BACKGROUND_URL = '/dashboard-background.png'
 
 export default function DashboardPage() {
   const [toastSong, setToastSong] = useState<Song | null>(null)
@@ -49,9 +52,13 @@ export default function DashboardPage() {
         style={{ transform: `scale(${scale})` }}
       >
         <img
-          src="/dashboard-background.png"
+          src={DASHBOARD_BACKGROUND_URL}
           className="absolute inset-0 z-0 h-full w-full object-cover"
           alt=""
+          onError={(event) => {
+            event.currentTarget.onerror = null
+            event.currentTarget.src = FALLBACK_DASHBOARD_BACKGROUND_URL
+          }}
         />
         <img
           src="/dashboard-frame.png"
@@ -65,24 +72,20 @@ export default function DashboardPage() {
           style={{ objectFit: 'contain' }}
         />
         <OverlayAboveCircles />
-        <svg
-          className="pointer-events-none absolute left-[80px] top-[76px] z-[6] h-[54px] w-[62px]"
-          viewBox="80 76 62 54"
-          fill="none"
+        <img
+          src={dashboardLogo}
+          className="pointer-events-none absolute left-[100px] top-[68px] z-[6] h-[62px] w-[224px]"
+          alt=""
           aria-hidden="true"
-        >
-          <path d="M100.595 81.883L110.657 110.516L106.117 112.615L95.912 83.5257L100.595 81.883Z" fill="#29E7E5" />
-          <ellipse cx="115.452" cy="114.8" rx="13.0515" ry="12.8376" fill="#FCAFE4" />
-          <ellipse cx="97.8376" cy="111.021" rx="12.8376" ry="12.6236" fill="#29E7E5" />
-          <path fillRule="evenodd" clipRule="evenodd" d="M108.476 103.953C109.864 105.97 110.675 108.402 110.675 111.021C110.675 115.587 108.209 119.587 104.515 121.804C103.179 119.79 102.402 117.385 102.402 114.801C102.402 110.236 104.826 106.229 108.476 103.953Z" fill="#9770BF" />
-          <path d="M93.8438 78H117.309L121.659 87.5569H97.3282L93.8438 78Z" fill="#29E7E5" />
-          <path d="M117.865 83.1999L127.803 111.62L123.121 113.263L112.916 84.1732L117.865 83.1999Z" fill="#FCAFE4" />
-          <path d="M111.816 81.5654C111.816 81.5654 116.711 81.5687 119.325 81.7915C123.427 82.1412 125.759 83.5187 129.995 83.8245C132.629 84.0147 135.832 83.8245 135.832 83.8245L139.417 92.8457C139.417 92.8457 133.712 94.5009 128.019 92.8457C122.326 91.1905 115.636 91.349 115.636 91.349L111.816 81.5654Z" fill="#FCAFE4" />
-          <path fillRule="evenodd" clipRule="evenodd" d="M111.816 81.5654C111.832 81.5654 116.359 81.5698 119.024 81.7686L121.659 87.5566H114.155L111.816 81.5654Z" fill="#9770BF" />
-        </svg>
+        />
+        <img
+          src={dashboardTitle}
+          className="pointer-events-none absolute left-1/2 top-[-5px] z-[6] h-[178px] w-[771px] -translate-x-1/2"
+          alt=""
+          aria-hidden="true"
+        />
         <EraDiamondFocus activeEra={focusEra} />
         <EraSongBalls songs={songs} activeSong={focusSong} />
-        <StatusBar />
         <Toast song={toastSong} />
 
         <div className={'absolute z-[15] transition-opacity duration-500 ' + (isFocusActive ? 'opacity-50' : 'opacity-100')} style={{ left: 480, top: 180 }}>

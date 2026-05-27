@@ -61,11 +61,6 @@ export default function DashboardPage() {
           }}
         />
         <img
-          src="/dashboard-frame.png"
-          className="absolute inset-0 z-[1] h-full w-full object-cover opacity-20 mix-blend-overlay"
-          alt=""
-        />
-        <img
           src={overlayBelow}
           className="absolute inset-0 z-[2] h-full w-full pointer-events-none"
           alt=""

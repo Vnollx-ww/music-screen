@@ -38,6 +38,10 @@ interface PanelLayout {
   badgeFill: string
   artistFontSize: number
   frame: string
+  bottomFrameLeft: number
+  bottomFrameTop: number
+  bottomFrameWidth: number
+  bottomFrameHeight: number
 }
 
 type ClassicEra = Exclude<Era, 'ai'>
@@ -73,6 +77,10 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     badgeFill: 'black',
     artistFontSize: 15,
     frame: frameLeft,
+    bottomFrameLeft: 48,
+    bottomFrameTop: 66,
+    bottomFrameWidth: 412,
+    bottomFrameHeight: 529,
   },
   ai: {
     width: 495,
@@ -93,6 +101,10 @@ const layouts: Record<'classic' | 'ai', PanelLayout> = {
     badgeFill: 'white',
     artistFontSize: 12,
     frame: frameRight,
+    bottomFrameLeft: 48,
+    bottomFrameTop: 66,
+    bottomFrameWidth: 399,
+    bottomFrameHeight: 528,
   },
 }
 
@@ -214,6 +226,15 @@ function RankingPanel({ title, songs, variant }: Props) {
   return (
     <section className="relative shrink-0" style={{ width: layout.width, height: layout.height }}>
       <img src={layout.frame} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
+      <div
+        className="ranking-panel-bottom-frame"
+        style={{
+          left: layout.bottomFrameLeft,
+          top: layout.bottomFrameTop,
+          width: layout.bottomFrameWidth,
+          height: layout.bottomFrameHeight,
+        }}
+      />
 
       <div
         className="pointer-events-none absolute inset-x-0 flex items-center justify-center"

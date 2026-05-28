@@ -4,7 +4,7 @@ import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useSongs } from '../hooks/useSongs'
 import { fetchGeneratedMusic, generateMusic, preprocessMusicCover } from '../lib/music'
 import type { GeneratedMusic } from '../lib/music'
-import { calcScore, insertSong } from '../lib/songs'
+import { calcScore, insertSong, voteSong } from '../lib/songs'
 import type { Song } from '../types/song'
 import headerLeftPanelRaw from '../svg/mix-interface/header/left/panels/HeaderPanel.svg?raw'
 import headerLeftIconRaw from '../svg/mix-interface/header/left/icons/MusicNoteLogo.svg?raw'
@@ -31,7 +31,9 @@ import secondaryCapsule from '../svg/mix-interface/form/capsules/SecondaryBlackC
 import primaryCapsule from '../svg/mix-interface/form/capsules/PrimaryGradientCapsule.svg'
 import rankingPanel from '../svg/mix-interface/ranking/panels/RankingPanel.svg'
 import ipadIcon from '../svg/ipad.svg'
+import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
 import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
+import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
 import aiMusicBallRaw from '../svg/center-records/AiMusicBallEnterDiamond.svg?raw'
 import backArrow from '../svg/返回键.svg'
 import '../styles/mix-interface.css'
@@ -60,6 +62,8 @@ const RANKING_SONG_TITLE_MAX_CHARS = 7
 const MIX_INACTIVITY_TIMEOUT_MS = 60 * 1000
 const GENERATION_STEP_DELAY_MS = 420
 const GENERATION_COMPLETE_HIDE_MS = 1600
+const MESSAGE_AUTO_HIDE_MS = 3000
+const STATUS_FADE_OUT_MS = 280
 const generationSteps: GenerationStep[] = [
   {
     id: 'start',
@@ -294,6 +298,10 @@ function createPendingWorkItem(id: string, prompt: string, title: string): WorkI
   }
 }
 
+function songLabel(song: Song): string {
+  return `${song.title} · ${song.artist}`
+}
+
 function waitFor(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -303,6 +311,23 @@ function isInterruptedAudioPlayError(err: unknown): boolean {
   return (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError')
     || message.includes('The play() request was interrupted')
     || message.includes('interrupted by a new load request')
+}
+
+function getVoteErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const record = err as Record<string, unknown>
+    const parts = [record.message, record.detail].filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0,
+    )
+
+    const message = typeof record.message === 'string' ? record.message.trim() : ''
+    if (message.includes('投票次数已达上限')) return '当前 IP 投票次数已达上限（每个 IP 最多 3 票）'
+    if (parts.length > 0) return parts.join('；')
+  }
+
+  if (err instanceof Error && err.message.trim()) return err.message
+  if (typeof err === 'string' && err.trim()) return err
+  return '推榜失败，请稍后重试'
 }
 
 export default function MixInterfacePage() {
@@ -320,31 +345,40 @@ export default function MixInterfacePage() {
   const [selectedWorkId, setSelectedWorkId] = useState<string | null>(null)
   const [loadingWorks, setLoadingWorks] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [pushing, setPushing] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [voting, setVoting] = useState(false)
+  const [votedWorkId, setVotedWorkId] = useState<string | null>(null)
   const [hasUnpushedGeneratedWork, setHasUnpushedGeneratedWork] = useState(false)
-  const [pushedWorkIds, setPushedWorkIds] = useState<Set<string>>(() => new Set())
+  const [uploadedWorkIds, setUploadedWorkIds] = useState<Set<string>>(() => new Set())
+  const [uploadedSongIdsByWorkId, setUploadedSongIdsByWorkId] = useState<Map<string, string>>(() => new Map())
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
-  const [playing, setPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const [statusFading, setStatusFading] = useState(false)
+  const [aiPlaying, setAiPlaying] = useState(false)
+  const [aiCurrentTime, setAiCurrentTime] = useState(0)
+  const [aiDuration, setAiDuration] = useState(0)
+  const [footerPlaying, setFooterPlaying] = useState(false)
+  const [footerCurrentTime, setFooterCurrentTime] = useState(0)
+  const [footerDuration, setFooterDuration] = useState(0)
   const [playerOpen, setPlayerOpen] = useState(false)
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
   const [generationStepId, setGenerationStepId] = useState<GenerationStepId | null>(null)
   const [songTitleTooltip, setSongTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
   const modalOpen = generationStepId !== null || playerOpen || confirmCloseOpen
-  const inactivityPaused = generating || modalOpen || hasUnpushedGeneratedWork || playing
+  const inactivityPaused = generating || modalOpen || hasUnpushedGeneratedWork || aiPlaying || footerPlaying
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
   const customInputRef = useRef<HTMLInputElement | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const aiAudioRef = useRef<HTMLAudioElement | null>(null)
+  const footerAudioRef = useRef<HTMLAudioElement | null>(null)
   const autoPlayWorkIdRef = useRef<string | null>(null)
+  const autoPlayReferenceIdRef = useRef<string | null>(null)
   const inactivityTimerRef = useRef<number | null>(null)
   const generationCloseTimerRef = useRef<number | null>(null)
 
   const closePlayer = useCallback(() => {
     autoPlayWorkIdRef.current = null
-    audioRef.current?.pause()
-    setPlaying(false)
+    aiAudioRef.current?.pause()
+    setAiPlaying(false)
     setPlayerOpen(false)
     setConfirmCloseOpen(false)
   }, [])
@@ -367,6 +401,28 @@ export default function MixInterfacePage() {
       if (rafId !== 0) window.cancelAnimationFrame(rafId)
     }
   }, [])
+
+  useEffect(() => {
+    if (!message && !error) {
+      setStatusFading(false)
+      return undefined
+    }
+
+    setStatusFading(false)
+    let clearTimerId: number | null = null
+    const hideTimerId = window.setTimeout(() => {
+      setStatusFading(true)
+      clearTimerId = window.setTimeout(() => {
+        setMessage('')
+        setError('')
+        setStatusFading(false)
+      }, STATUS_FADE_OUT_MS)
+    }, MESSAGE_AUTO_HIDE_MS)
+    return () => {
+      window.clearTimeout(hideTimerId)
+      if (clearTimerId !== null) window.clearTimeout(clearTimerId)
+    }
+  }, [error, message])
 
   useEffect(() => {
     const returnToStandby = () => {
@@ -416,6 +472,14 @@ export default function MixInterfacePage() {
     () => (selectedReference?.music_id ? generatedMusicById.get(selectedReference.music_id) ?? null : null),
     [generatedMusicById, selectedReference],
   )
+  const playableReferenceSongs = useMemo(
+    () => referenceSongs.filter((song) => {
+      if (!song.music_id) return false
+      const record = generatedMusicById.get(song.music_id)
+      return Boolean(record?.music_url)
+    }),
+    [generatedMusicById, referenceSongs],
+  )
   const aiSongs = useMemo(
     () => [...songs.filter((song) => song.era === 'ai')].sort((a, b) => calcScore(b) - calcScore(a)),
     [songs],
@@ -439,10 +503,22 @@ export default function MixInterfacePage() {
     () => (selectedWorkId ? works.find((work) => work.id === selectedWorkId) ?? aiRankWorks.find((work) => work.songId === selectedWorkId || work.id === selectedWorkId) ?? null : null),
     [aiRankWorks, selectedWorkId, works],
   )
-  const progressPercent = duration ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0
-  const selectedWorkPushed = selectedWork ? Boolean(selectedWork.songId) || pushedWorkIds.has(selectedWork.id) : false
+  const aiProgressPercent = aiDuration ? Math.min(100, Math.max(0, (aiCurrentTime / aiDuration) * 100)) : 0
+  const footerProgressPercent = footerDuration ? Math.min(100, Math.max(0, (footerCurrentTime / footerDuration) * 100)) : 0
+  const selectedWorkUploadedSongId = selectedWork?.songId ?? (selectedWork ? uploadedSongIdsByWorkId.get(selectedWork.id) : undefined)
+  const selectedWorkUploaded = selectedWork ? Boolean(selectedWorkUploadedSongId) || uploadedWorkIds.has(selectedWork.id) : false
+  const selectedWorkVoted = selectedWork ? votedWorkId === selectedWork.id : false
   const canSelectAdjacentWork = selectedWork ? playableRankWorks.some((work) => work.id === selectedWork.id) : false
-  const shouldConfirmPlayerClose = Boolean(selectedWork && hasUnpushedGeneratedWork && !selectedWorkPushed)
+  const canSelectAdjacentReference = selectedReference ? playableReferenceSongs.some((song) => song.id === selectedReference.id) : false
+  const shouldConfirmPlayerClose = Boolean(selectedWork && hasUnpushedGeneratedWork && !selectedWorkUploaded)
+  const footerAudioUnavailableReason = useMemo(() => {
+    if (!selectedReference) return '请先选择一首热门代际歌曲'
+    if (!selectedReference.music_id) return `《${selectedReference.title}》没有关联音频，无法播放`
+    if (loadingWorks) return '热门代际歌曲音频信息还在加载中，请稍后再试'
+    if (!selectedReferenceMusic) return `《${selectedReference.title}》关联音频不存在或已过期，无法播放`
+    if (!selectedReferenceMusic.music_url) return `《${selectedReference.title}》音频暂时无法访问，无法播放`
+    return ''
+  }, [loadingWorks, selectedReference, selectedReferenceMusic])
   const selectedReferenceAudioUnavailableReason = useMemo(() => {
     if (!selectedReference) return '请先选择一首社区热门歌曲'
     if (!selectedReference.music_id) return `《${selectedReference.title}》没有关联音频，无法作为AI混曲参考`
@@ -527,22 +603,24 @@ export default function MixInterfacePage() {
   }, [])
 
   useEffect(() => {
-    const audio = audioRef.current
+    const audio = aiAudioRef.current
     const shouldAutoPlay = selectedWorkId !== null
       && autoPlayWorkIdRef.current === selectedWorkId
       && !selectedWork?.isPending
       && Boolean(selectedWork?.music_url)
 
-    setCurrentTime(0)
-    setDuration(0)
-    setPlaying(false)
+    setAiCurrentTime(0)
+    setAiDuration(0)
+    setAiPlaying(false)
     if (audio) {
       audio.pause()
       audio.currentTime = 0
       if (shouldAutoPlay) {
+        footerAudioRef.current?.pause()
+        setFooterPlaying(false)
         void audio.play().then(() => {
           if (autoPlayWorkIdRef.current === selectedWorkId) autoPlayWorkIdRef.current = null
-          setPlaying(true)
+          setAiPlaying(true)
           setError('')
         }).catch((err: unknown) => {
           if (autoPlayWorkIdRef.current === selectedWorkId) autoPlayWorkIdRef.current = null
@@ -554,6 +632,36 @@ export default function MixInterfacePage() {
       autoPlayWorkIdRef.current = null
     }
   }, [selectedWorkId, selectedWork?.isPending, selectedWork?.music_url])
+
+  useEffect(() => {
+    const audio = footerAudioRef.current
+    const shouldAutoPlay = selectedReferenceId !== null
+      && autoPlayReferenceIdRef.current === selectedReferenceId
+      && Boolean(selectedReferenceMusic?.music_url)
+
+    setFooterCurrentTime(0)
+    setFooterDuration(0)
+    setFooterPlaying(false)
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+      if (shouldAutoPlay) {
+        aiAudioRef.current?.pause()
+        setAiPlaying(false)
+        void audio.play().then(() => {
+          if (autoPlayReferenceIdRef.current === selectedReferenceId) autoPlayReferenceIdRef.current = null
+          setFooterPlaying(true)
+          setError('')
+        }).catch((err: unknown) => {
+          if (autoPlayReferenceIdRef.current === selectedReferenceId) autoPlayReferenceIdRef.current = null
+          if (isInterruptedAudioPlayError(err)) return
+          setError(err instanceof Error ? err.message : '播放失败')
+        })
+      }
+    } else if (autoPlayReferenceIdRef.current === selectedReferenceId) {
+      autoPlayReferenceIdRef.current = null
+    }
+  }, [selectedReferenceId, selectedReferenceMusic?.music_url])
 
   const scrollReferences = (direction: -1 | 1) => {
     referenceScrollRef.current?.scrollBy({
@@ -624,7 +732,7 @@ export default function MixInterfacePage() {
           autoPlayWorkIdRef.current = item.id
           setSelectedWorkId(item.id)
           setPlayerOpen(true)
-          setMessage('正在播放AI混曲')
+          setMessage('')
           generationCloseTimerRef.current = null
         }, GENERATION_COMPLETE_HIDE_MS)
       })
@@ -645,7 +753,7 @@ export default function MixInterfacePage() {
     if (work.isMusicLoading) {
       autoPlayWorkIdRef.current = null
       setSelectedWorkId(nextWorkId)
-      setPlaying(false)
+      setAiPlaying(false)
       setPlayerOpen(false)
       setMessage('音频信息还在加载中，请稍后再试')
       return
@@ -653,7 +761,7 @@ export default function MixInterfacePage() {
     if (work.missingMusic || !work.music_url) {
       autoPlayWorkIdRef.current = null
       setSelectedWorkId(nextWorkId)
-      setPlaying(false)
+      setAiPlaying(false)
       setPlayerOpen(false)
       setError('这首AI混曲缺少关联音乐，无法播放')
       return
@@ -661,13 +769,15 @@ export default function MixInterfacePage() {
     autoPlayWorkIdRef.current = nextWorkId
     setSelectedWorkId(nextWorkId)
     setPlayerOpen(true)
-    setMessage('正在播放AI混曲')
+    setMessage('')
     if (nextWorkId === selectedWorkId) {
-      const audio = audioRef.current
+      const audio = aiAudioRef.current
       if (!audio) return
+      footerAudioRef.current?.pause()
+      setFooterPlaying(false)
       void audio.play().then(() => {
         if (autoPlayWorkIdRef.current === nextWorkId) autoPlayWorkIdRef.current = null
-        setPlaying(true)
+        setAiPlaying(true)
         setError('')
       }).catch((err: unknown) => {
         if (autoPlayWorkIdRef.current === nextWorkId) autoPlayWorkIdRef.current = null
@@ -677,12 +787,14 @@ export default function MixInterfacePage() {
     }
   }
 
-  const togglePlay = () => {
-    const audio = audioRef.current
+  const toggleAiPlay = () => {
+    const audio = aiAudioRef.current
     if (!audio || !selectedWork || selectedWork.isPending || !selectedWork.music_url) return
 
     if (audio.paused) {
-      void audio.play().then(() => setPlaying(true)).catch((err: unknown) => {
+      footerAudioRef.current?.pause()
+      setFooterPlaying(false)
+      void audio.play().then(() => setAiPlaying(true)).catch((err: unknown) => {
         if (isInterruptedAudioPlayError(err)) return
         setError(err instanceof Error ? err.message : '播放失败')
       })
@@ -690,13 +802,70 @@ export default function MixInterfacePage() {
     }
 
     audio.pause()
-    setPlaying(false)
+    setAiPlaying(false)
   }
 
-  const handleSeek = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleAiSeek = (event: ChangeEvent<HTMLInputElement>) => {
     const nextTime = Number(event.target.value)
-    setCurrentTime(nextTime)
-    if (audioRef.current) audioRef.current.currentTime = nextTime
+    setAiCurrentTime(nextTime)
+    if (aiAudioRef.current) aiAudioRef.current.currentTime = nextTime
+  }
+
+  const toggleFooterPlay = () => {
+    const audio = footerAudioRef.current
+    if (!audio || !selectedReferenceMusic?.music_url) {
+      if (footerAudioUnavailableReason) setError(footerAudioUnavailableReason)
+      return
+    }
+
+    if (audio.paused) {
+      aiAudioRef.current?.pause()
+      setAiPlaying(false)
+      void audio.play().then(() => {
+        setFooterPlaying(true)
+        setError('')
+      }).catch((err: unknown) => {
+        if (isInterruptedAudioPlayError(err)) return
+        setError(err instanceof Error ? err.message : '播放失败')
+      })
+      return
+    }
+
+    audio.pause()
+    setFooterPlaying(false)
+  }
+
+  const handleFooterSeek = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.target.value)
+    setFooterCurrentTime(nextTime)
+    if (footerAudioRef.current) footerAudioRef.current.currentTime = nextTime
+  }
+
+  const selectAdjacentReference = (direction: -1 | 1) => {
+    if (playableReferenceSongs.length === 0) return
+    const currentIndex = selectedReference ? playableReferenceSongs.findIndex((song) => song.id === selectedReference.id) : -1
+    const nextIndex = currentIndex < 0
+      ? 0
+      : (currentIndex + direction + playableReferenceSongs.length) % playableReferenceSongs.length
+    const next = playableReferenceSongs[nextIndex]
+    if (!next) return
+    autoPlayReferenceIdRef.current = next.id
+    setSelectedReferenceId(next.id)
+    if (next.id === selectedReferenceId) {
+      const audio = footerAudioRef.current
+      if (!audio) return
+      aiAudioRef.current?.pause()
+      setAiPlaying(false)
+      void audio.play().then(() => {
+        if (autoPlayReferenceIdRef.current === next.id) autoPlayReferenceIdRef.current = null
+        setFooterPlaying(true)
+        setError('')
+      }).catch((err: unknown) => {
+        if (autoPlayReferenceIdRef.current === next.id) autoPlayReferenceIdRef.current = null
+        if (isInterruptedAudioPlayError(err)) return
+        setError(err instanceof Error ? err.message : '播放失败')
+      })
+    }
   }
 
   const selectAdjacentWork = (direction: -1 | 1) => {
@@ -707,9 +876,9 @@ export default function MixInterfacePage() {
     if (next) handleWorkSelect(next)
   }
 
-  const handlePushToRanking = () => {
-    if (!selectedWork || selectedWork.isPending || selectedWorkPushed || pushing) return
-    setPushing(true)
+  const handleUploadToRanking = () => {
+    if (!selectedWork || selectedWork.isPending || selectedWorkUploaded || uploading) return
+    setUploading(true)
     setError('')
     void insertSong({
       title: selectedWork.title,
@@ -719,15 +888,35 @@ export default function MixInterfacePage() {
     })
       .then((song) => {
         upsertSong(song)
-        setPushedWorkIds((prev) => new Set(prev).add(selectedWork.id))
+        setUploadedWorkIds((prev) => new Set(prev).add(selectedWork.id))
+        setUploadedSongIdsByWorkId((prev) => new Map(prev).set(selectedWork.id, song.id))
         setHasUnpushedGeneratedWork(false)
         setSelectedWorkId(song.id)
-        setMessage('已推入AI混曲榜单')
+        setMessage('已上传到AI混曲榜单')
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : '推榜失败')
+        setError(err instanceof Error ? err.message : '上传失败')
       })
-      .finally(() => setPushing(false))
+      .finally(() => setUploading(false))
+  }
+
+  const handleVoteUploadedWork = () => {
+    if (!selectedWork || !selectedWorkUploadedSongId || voting) return
+    const workId = selectedWork.id
+    setVoting(true)
+    setError('')
+    void voteSong(selectedWorkUploadedSongId)
+      .then((updatedSong) => {
+        upsertSong(updatedSong)
+        setVotedWorkId(workId)
+        setMessage('已推榜 +1')
+        window.setTimeout(() => setVotedWorkId((id) => (id === workId ? null : id)), 1400)
+      })
+      .catch((err: unknown) => {
+        const message = getVoteErrorMessage(err)
+        setError(message.includes('投票次数已达上限') ? message : `《${selectedWork.title}》推榜失败：${message}`)
+      })
+      .finally(() => setVoting(false))
   }
 
   const renderSongTitle = (title: string) => {
@@ -781,6 +970,8 @@ export default function MixInterfacePage() {
   const generationStepIndex = generationStepId ? generationSteps.findIndex((step) => step.id === generationStepId) : -1
   const generationCurrentStep = generationStepIndex >= 0 ? generationSteps[generationStepIndex] : null
   const generationProgressPercent = generationStepIndex >= 0 ? ((generationStepIndex + 1) / generationSteps.length) * 100 : 0
+  const footerCurrentTitle = selectedReference?.title
+  const footerCurrentDescription = selectedReference ? songLabel(selectedReference) : '请先选择热门代际歌曲'
 
   return (
     <main className="mix-page">
@@ -910,11 +1101,10 @@ export default function MixInterfacePage() {
               {(loadingWorks || loadingSongs) && aiRankWorks.length === 0 && <div className="mix-ranking-empty">加载AI混曲榜单中...</div>}
               {!loadingWorks && !loadingSongs && aiRankWorks.length === 0 && <div className="mix-ranking-empty">暂无AI混曲，先生成一首吧</div>}
               {aiRankWorks.map((work, index) => {
-                const selected = selectedWork?.id === work.id
                 const waiting = work.isPending || work.isMusicLoading
                 return (
                   <button
-                    className={`mix-ranking-row${selected ? ' is-selected' : ''}${waiting ? ' is-pending' : ''}`}
+                    className={`mix-ranking-row${waiting ? ' is-pending' : ''}`}
                     type="button"
                     key={work.songId ?? work.id}
                     onClick={() => handleWorkSelect(work)}
@@ -931,6 +1121,36 @@ export default function MixInterfacePage() {
               })}
             </div>
           </aside>
+
+          <footer className="mix-footer">
+            <img src={footerPanel} className="mix-footer-panel" alt="" aria-hidden />
+            <button className="mix-footer-current" type="button" onClick={toggleFooterPlay} disabled={!selectedReferenceMusic?.music_url}>
+              <img src={footerIcon} alt="" aria-hidden />
+              <div>
+                {footerCurrentTitle ? renderSongTitle(footerCurrentTitle) : <strong>等待选择歌曲</strong>}
+                <span>{footerCurrentDescription}</span>
+              </div>
+            </button>
+            <div className="mix-footer-player">
+              <button type="button" onClick={() => selectAdjacentReference(-1)} disabled={!canSelectAdjacentReference} aria-label="上一首"><Icon name="prev" /></button>
+              <button className="mix-footer-play" type="button" onClick={toggleFooterPlay} disabled={!selectedReferenceMusic?.music_url} aria-label={footerPlaying ? '暂停' : '播放'}>
+                <Icon name={footerPlaying ? 'pause' : 'play'} className={footerPlaying ? undefined : 'mix-footer-play-icon'} />
+              </button>
+              <button type="button" onClick={() => selectAdjacentReference(1)} disabled={!canSelectAdjacentReference} aria-label="下一首"><Icon name="next" /></button>
+              <span>{formatTime(footerCurrentTime)}</span>
+              <input
+                className="mix-footer-range"
+                type="range"
+                min="0"
+                max={footerDuration || 0}
+                value={Math.min(footerCurrentTime, footerDuration || 0)}
+                onChange={handleFooterSeek}
+                disabled={!footerDuration}
+                style={{ '--mix-progress': `${footerProgressPercent}%` } as CSSProperties}
+              />
+              <span>{formatTime(footerDuration)}</span>
+            </div>
+          </footer>
 
           <div className="mix-ai-disclaimer">此音乐内容由AI生成，不作任何商用途径，重要信息务必核查。</div>
 
@@ -994,29 +1214,44 @@ export default function MixInterfacePage() {
                   <p>{selectedWork.prompt}</p>
                   <div className="mix-player-controls">
                     <button type="button" onClick={() => selectAdjacentWork(-1)} disabled={!canSelectAdjacentWork} aria-label="上一首"><Icon name="prev" /></button>
-                    <button className="mix-player-play" type="button" onClick={togglePlay} disabled={!selectedWork.music_url} aria-label={playing ? '暂停' : '播放'}>
-                      <Icon name={playing ? 'pause' : 'play'} className={playing ? undefined : 'mix-player-play-icon'} />
+                    <button className="mix-player-play" type="button" onClick={toggleAiPlay} disabled={!selectedWork.music_url} aria-label={aiPlaying ? '暂停' : '播放'}>
+                      <Icon name={aiPlaying ? 'pause' : 'play'} className={aiPlaying ? undefined : 'mix-player-play-icon'} />
                     </button>
                     <button type="button" onClick={() => selectAdjacentWork(1)} disabled={!canSelectAdjacentWork} aria-label="下一首"><Icon name="next" /></button>
                   </div>
                   <div className="mix-player-progress">
-                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(aiCurrentTime)}</span>
                     <input
                       className="mix-player-range"
                       type="range"
                       min="0"
-                      max={duration || 0}
-                      value={Math.min(currentTime, duration || 0)}
-                      onChange={handleSeek}
-                      disabled={!duration}
-                      style={{ '--mix-progress': `${progressPercent}%` } as CSSProperties}
+                      max={aiDuration || 0}
+                      value={Math.min(aiCurrentTime, aiDuration || 0)}
+                      onChange={handleAiSeek}
+                      disabled={!aiDuration}
+                      style={{ '--mix-progress': `${aiProgressPercent}%` } as CSSProperties}
                     />
-                    <span>{formatTime(duration)}</span>
+                    <span>{formatTime(aiDuration)}</span>
                   </div>
-                  <button className="mix-player-push-button" type="button" onClick={handlePushToRanking} disabled={!selectedWork || selectedWork.isPending || selectedWorkPushed || pushing}>
-                    <img src={pushCapsule} alt="" aria-hidden />
-                    <span>{selectedWorkPushed ? '已推榜' : pushing ? '推榜中' : '推榜'}</span>
-                  </button>
+                  {(error || message) && (
+                    <div className={`mix-player-status${error ? ' is-error' : ''}${statusFading ? ' is-leaving' : ''}`}>
+                      {error || message}
+                    </div>
+                  )}
+                  <div className={`mix-player-actions${selectedWorkUploaded ? ' is-uploaded' : ''}`}>
+                    {!selectedWorkUploaded && (
+                      <button className="mix-player-push-button mix-player-upload-button" type="button" onClick={handleUploadToRanking} disabled={!selectedWork || selectedWork.isPending || uploading}>
+                        <img src={pushCapsule} alt="" aria-hidden />
+                        <span>{uploading ? '上传中' : '上传'}</span>
+                      </button>
+                    )}
+                    {selectedWorkUploaded && (
+                      <button className="mix-player-push-button mix-player-vote-button" type="button" onClick={handleVoteUploadedWork} disabled={!selectedWorkUploadedSongId || voting}>
+                        <img src={pushCapsule} alt="" aria-hidden />
+                        <span>{voting ? '推榜中' : selectedWorkVoted ? '已推 +1' : '推榜'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1025,10 +1260,10 @@ export default function MixInterfacePage() {
           {confirmCloseOpen && (
             <div className="mix-confirm-modal" role="dialog" aria-modal="true" aria-label="关闭确认" onClick={() => setConfirmCloseOpen(false)}>
               <div className="mix-confirm-card" onClick={(event) => event.stopPropagation()}>
-                <strong>还没有推榜</strong>
-                <p>这首AI混曲还没有推入榜单，确认关闭播放器吗？</p>
+                <strong>还没有上传</strong>
+                <p>这首AI混曲还没有上传到榜单，确认关闭播放器吗？</p>
                 <div className="mix-confirm-actions">
-                  <button className="mix-confirm-secondary" type="button" onClick={() => setConfirmCloseOpen(false)}>继续推榜</button>
+                  <button className="mix-confirm-secondary" type="button" onClick={() => setConfirmCloseOpen(false)}>继续上传</button>
                   <button className="mix-confirm-primary" type="button" onClick={confirmClosePlayer}>确认关闭</button>
                 </div>
               </div>
@@ -1036,11 +1271,18 @@ export default function MixInterfacePage() {
           )}
 
           <audio
-            ref={audioRef}
+            ref={aiAudioRef}
             src={selectedWork?.music_url || undefined}
-            onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-            onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-            onEnded={() => setPlaying(false)}
+            onTimeUpdate={(event) => setAiCurrentTime(event.currentTarget.currentTime)}
+            onLoadedMetadata={(event) => setAiDuration(event.currentTarget.duration)}
+            onEnded={() => setAiPlaying(false)}
+          />
+          <audio
+            ref={footerAudioRef}
+            src={selectedReferenceMusic?.music_url || undefined}
+            onTimeUpdate={(event) => setFooterCurrentTime(event.currentTarget.currentTime)}
+            onLoadedMetadata={(event) => setFooterDuration(event.currentTarget.duration)}
+            onEnded={() => setFooterPlaying(false)}
           />
           {songTitleTooltip && (
             <div className="mix-song-title-tooltip" style={{ left: songTitleTooltip.left, top: songTitleTooltip.top }}>

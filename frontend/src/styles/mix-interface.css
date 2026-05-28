@@ -68,7 +68,8 @@
 .mix-section-panel,
 .mix-style-title-bg,
 .mix-style-panel,
-.mix-ranking-panel {
+.mix-ranking-panel,
+.mix-footer-panel {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -745,6 +746,170 @@
   font-size: 17px;
 }
 
+.mix-footer {
+  position: absolute;
+  z-index: 6;
+  left: 10px;
+  top: 765px;
+  width: 1328px;
+  height: 192px;
+}
+
+.mix-footer-panel {
+  width: 1328px;
+  height: 192px;
+}
+
+.mix-footer-current {
+  position: absolute;
+  z-index: 3;
+  left: 86px;
+  top: 91px;
+  display: flex;
+  width: 360px;
+  cursor: pointer;
+  align-items: center;
+  gap: 18px;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  transition: filter 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.mix-footer-current:hover:not(:disabled) {
+  filter: brightness(1.12);
+  transform: translateY(-2px);
+}
+
+.mix-footer-current:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.mix-footer-current img {
+  width: 62px;
+  height: 42px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.mix-footer-current div {
+  min-width: 0;
+}
+
+.mix-footer-current strong,
+.mix-footer-current span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mix-footer-current strong {
+  color: #fff;
+  font-size: 19px;
+  font-weight: 760;
+  letter-spacing: 0.5px;
+}
+
+.mix-footer-current span {
+  margin-top: 5px;
+  color: var(--mix-text-soft);
+  font-size: 12px;
+}
+
+.mix-footer-player {
+  position: absolute;
+  z-index: 4;
+  left: 300px;
+  top: 54px;
+  display: flex;
+  width: 735px;
+  align-items: center;
+  gap: 12px;
+  transform: translateY(40px);
+}
+
+.mix-footer-player button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  cursor: pointer;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.mix-footer-player button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  transform: scale(1.05);
+}
+
+.mix-footer-player button:disabled {
+  cursor: not-allowed;
+  opacity: 0.32;
+}
+
+.mix-footer-player button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.mix-footer-player button svg.mix-footer-play-icon {
+  width: 15px;
+  height: 22px;
+  transform: translateX(2px);
+}
+
+.mix-footer-player .mix-footer-play {
+  background: rgba(255, 255, 255, 0.86);
+  color: #111116;
+}
+
+.mix-footer-player span {
+  width: 42px;
+  flex: 0 0 42px;
+  color: var(--mix-text-muted);
+  font-size: 12px;
+  user-select: none;
+}
+
+.mix-footer-range {
+  min-width: 0;
+  flex: 1;
+  height: 5px;
+  appearance: none;
+  border-radius: 999px;
+  outline: 0;
+  background: linear-gradient(90deg, #fff 0 var(--mix-progress, 0%), rgba(255, 255, 255, 0.24) var(--mix-progress, 0%) 100%);
+}
+
+.mix-footer-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #16161d;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.32);
+}
+
+.mix-footer-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #16161d;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.32);
+}
+
+.mix-footer-range:disabled {
+  opacity: 0.42;
+}
+
 .mix-ai-disclaimer {
   position: absolute;
   z-index: 6;
@@ -1068,6 +1233,45 @@
   opacity: 0.42;
 }
 
+.mix-player-status {
+  width: 520px;
+  min-height: 38px;
+  border: 1px solid rgba(41, 231, 229, 0.28);
+  border-radius: 999px;
+  margin-top: 20px;
+  padding: 8px 18px;
+  background: rgba(5, 10, 20, 0.58);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+
+.mix-player-status.is-error {
+  border-color: rgba(255, 112, 134, 0.42);
+  color: #ffb2be;
+}
+
+.mix-player-status.is-leaving {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.mix-player-actions {
+  display: flex;
+  width: 520px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.mix-player-actions.is-uploaded {
+  justify-content: flex-start;
+}
+
 .mix-player-push-button {
   position: relative;
   left: -50px;
@@ -1075,7 +1279,6 @@
   height: 146px;
   cursor: pointer;
   background: transparent;
-  margin-top: 28px;
   padding: 0;
   transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
 }

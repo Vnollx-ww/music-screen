@@ -47,6 +47,7 @@ type WorkItem = GeneratedMusic & {
   isPending?: boolean
 }
 
+type ClassicEra = Exclude<Song['era'], 'ai'>
 type MixIconName = 'play' | 'pause' | 'prev' | 'next' | 'wave'
 type GenerationStepId = 'start' | 'preprocess' | 'generate' | 'complete'
 type GenerationStep = {
@@ -101,6 +102,13 @@ const coverImages = [
   'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582227642792971-other_42.png',
   'https://cdn.hailuoai.com/pre/2025-06-22-16/music_cover/1750582177961486079-other_13.png',
 ]
+
+const referenceEraOptions: Record<ClassicEra, { icon: string; label: string }> = {
+  vinyl: { icon: pinkRecord, label: pinkLabel },
+  cd: { icon: purpleRecord, label: purpleLabel },
+  tape: { icon: robotRecord, label: robotLabel },
+  digital: { icon: cyanRecord, label: cyanLabel },
+}
 
 const styleOptions = [
   {
@@ -302,6 +310,11 @@ function songLabel(song: Song): string {
   return `${song.title} · ${song.artist}`
 }
 
+function getReferenceEraOption(song: Song): { icon: string; label: string } {
+  if (song.era === 'ai') return referenceEraOptions.digital
+  return referenceEraOptions[song.era]
+}
+
 function waitFor(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms))
 }
@@ -460,10 +473,8 @@ export default function MixInterfacePage() {
   )
   const selectedReferenceIcon = useMemo(() => {
     if (!selectedReference) return footerIcon
-    const selectedReferenceIndex = referenceSongs.findIndex((song) => song.id === selectedReference.id)
-    if (selectedReferenceIndex < 0) return footerIcon
-    return styleOptions[selectedReferenceIndex % styleOptions.length].icon
-  }, [referenceSongs, selectedReference])
+    return getReferenceEraOption(selectedReference).icon
+  }, [selectedReference])
   const selectedStyle = useMemo(
     () => styleOptions.find((style) => style.id === selectedStyleId) ?? styleOptions[0],
     [selectedStyleId],
@@ -1051,7 +1062,7 @@ export default function MixInterfacePage() {
               {!loadingSongs && referenceSongs.length === 0 && <div className="mix-empty-card">暂无社区热门歌曲</div>}
               {referenceSongs.map((song, index) => {
                 const selected = selectedReference?.id === song.id
-                const option = styleOptions[index % styleOptions.length]
+                const option = getReferenceEraOption(song)
                 return (
                   <button
                     className={`mix-reference-card${selected ? ' is-selected' : ''}`}

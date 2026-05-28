@@ -225,7 +225,7 @@ function RankingPanel({ title, songs, variant }: Props) {
 
   return (
     <section className="relative shrink-0" style={{ width: layout.width, height: layout.height }}>
-      <img src={layout.frame} alt="" className="pointer-events-none absolute inset-0 h-full w-full select-none" />
+      <img src={layout.frame} alt="" className="ranking-panel-frame pointer-events-none absolute inset-0 h-full w-full select-none" />
       <div
         className="ranking-panel-bottom-frame"
         style={{

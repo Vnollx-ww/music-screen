@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties, ChangeEvent, SVGProps } from 'react'
+import type { CSSProperties, ChangeEvent, MouseEvent as ReactMouseEvent, SVGProps } from 'react'
 import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useSongs } from '../hooks/useSongs'
 import { fetchGeneratedMusic, generateMusic, preprocessMusicCover } from '../lib/music'
@@ -364,6 +364,7 @@ export default function MixInterfacePage() {
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false)
   const [generationStepId, setGenerationStepId] = useState<GenerationStepId | null>(null)
   const [songTitleTooltip, setSongTitleTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
+  const [footerPlayTooltip, setFooterPlayTooltip] = useState<{ text: string; left: number; top: number } | null>(null)
   const modalOpen = generationStepId !== null || playerOpen || confirmCloseOpen
   const inactivityPaused = generating || modalOpen || hasUnpushedGeneratedWork || aiPlaying || footerPlaying
   const referenceScrollRef = useRef<HTMLDivElement | null>(null)
@@ -457,6 +458,12 @@ export default function MixInterfacePage() {
     () => (selectedReferenceId ? referenceSongs.find((song) => song.id === selectedReferenceId) ?? null : null),
     [selectedReferenceId, referenceSongs],
   )
+  const selectedReferenceIcon = useMemo(() => {
+    if (!selectedReference) return footerIcon
+    const selectedReferenceIndex = referenceSongs.findIndex((song) => song.id === selectedReference.id)
+    if (selectedReferenceIndex < 0) return footerIcon
+    return styleOptions[selectedReferenceIndex % styleOptions.length].icon
+  }, [referenceSongs, selectedReference])
   const selectedStyle = useMemo(
     () => styleOptions.find((style) => style.id === selectedStyleId) ?? styleOptions[0],
     [selectedStyleId],
@@ -504,7 +511,11 @@ export default function MixInterfacePage() {
     [aiRankWorks, selectedWorkId, works],
   )
   const aiProgressPercent = aiDuration ? Math.min(100, Math.max(0, (aiCurrentTime / aiDuration) * 100)) : 0
-  const footerProgressPercent = footerDuration ? Math.min(100, Math.max(0, (footerCurrentTime / footerDuration) * 100)) : 0
+  const footerAudioUrl = selectedReferenceMusic?.music_url ?? ''
+  const footerAudioReady = Boolean(footerAudioUrl)
+  const footerDisplayCurrentTime = footerAudioReady ? footerCurrentTime : 0
+  const footerDisplayDuration = footerAudioReady ? footerDuration : 0
+  const footerProgressPercent = footerDisplayDuration ? Math.min(100, Math.max(0, (footerDisplayCurrentTime / footerDisplayDuration) * 100)) : 0
   const selectedWorkUploadedSongId = selectedWork?.songId ?? (selectedWork ? uploadedSongIdsByWorkId.get(selectedWork.id) : undefined)
   const selectedWorkUploaded = selectedWork ? Boolean(selectedWorkUploadedSongId) || uploadedWorkIds.has(selectedWork.id) : false
   const selectedWorkVoted = selectedWork ? votedWorkId === selectedWork.id : false
@@ -519,6 +530,9 @@ export default function MixInterfacePage() {
     if (!selectedReferenceMusic.music_url) return `《${selectedReference.title}》音频暂时无法访问，无法播放`
     return ''
   }, [loadingWorks, selectedReference, selectedReferenceMusic])
+  useEffect(() => {
+    if (!footerAudioUnavailableReason) setFooterPlayTooltip(null)
+  }, [footerAudioUnavailableReason])
   const selectedReferenceAudioUnavailableReason = useMemo(() => {
     if (!selectedReference) return '请先选择一首社区热门歌曲'
     if (!selectedReference.music_id) return `《${selectedReference.title}》没有关联音频，无法作为AI混曲参考`
@@ -637,7 +651,7 @@ export default function MixInterfacePage() {
     const audio = footerAudioRef.current
     const shouldAutoPlay = selectedReferenceId !== null
       && autoPlayReferenceIdRef.current === selectedReferenceId
-      && Boolean(selectedReferenceMusic?.music_url)
+      && footerAudioReady
 
     setFooterCurrentTime(0)
     setFooterDuration(0)
@@ -645,6 +659,15 @@ export default function MixInterfacePage() {
     if (audio) {
       audio.pause()
       audio.currentTime = 0
+      if (!footerAudioReady) {
+        audio.removeAttribute('src')
+        audio.load()
+        if (
+          autoPlayReferenceIdRef.current === selectedReferenceId
+          && (!loadingWorks || !selectedReference?.music_id || selectedReferenceMusic)
+        ) autoPlayReferenceIdRef.current = null
+        return
+      }
       if (shouldAutoPlay) {
         aiAudioRef.current?.pause()
         setAiPlaying(false)
@@ -661,7 +684,7 @@ export default function MixInterfacePage() {
     } else if (autoPlayReferenceIdRef.current === selectedReferenceId) {
       autoPlayReferenceIdRef.current = null
     }
-  }, [selectedReferenceId, selectedReferenceMusic?.music_url])
+  }, [footerAudioReady, footerAudioUrl, loadingWorks, selectedReference, selectedReferenceId, selectedReferenceMusic])
 
   const scrollReferences = (direction: -1 | 1) => {
     referenceScrollRef.current?.scrollBy({
@@ -813,7 +836,7 @@ export default function MixInterfacePage() {
 
   const toggleFooterPlay = () => {
     const audio = footerAudioRef.current
-    if (!audio || !selectedReferenceMusic?.music_url) {
+    if (!audio || !footerAudioReady) {
       if (footerAudioUnavailableReason) setError(footerAudioUnavailableReason)
       return
     }
@@ -835,7 +858,22 @@ export default function MixInterfacePage() {
     setFooterPlaying(false)
   }
 
+  const showFooterPlayTooltip = (event: ReactMouseEvent<HTMLElement>) => {
+    if (!footerAudioUnavailableReason) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const canvas = event.currentTarget.closest('.mix-canvas')
+    if (!(canvas instanceof HTMLElement)) return
+    const canvasRect = canvas.getBoundingClientRect()
+    const currentScale = scale || 1
+    setFooterPlayTooltip({
+      text: footerAudioUnavailableReason,
+      left: (rect.left + rect.width / 2 - canvasRect.left) / currentScale,
+      top: (rect.top - canvasRect.top) / currentScale,
+    })
+  }
+
   const handleFooterSeek = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!footerAudioReady) return
     const nextTime = Number(event.target.value)
     setFooterCurrentTime(nextTime)
     if (footerAudioRef.current) footerAudioRef.current.currentTime = nextTime
@@ -1020,7 +1058,10 @@ export default function MixInterfacePage() {
                     type="button"
                     key={song.id}
                     data-reference-id={song.id}
-                    onClick={() => setSelectedReferenceId(song.id)}
+                    onClick={() => {
+                      autoPlayReferenceIdRef.current = song.id
+                      setSelectedReferenceId(song.id)
+                    }}
                   >
                     <img src={option.icon} className="mix-reference-record" alt="" aria-hidden />
                     <span className="mix-reference-rank">TOP {index + 1}</span>
@@ -1124,8 +1165,8 @@ export default function MixInterfacePage() {
 
           <footer className="mix-footer">
             <img src={footerPanel} className="mix-footer-panel" alt="" aria-hidden />
-            <button className="mix-footer-current" type="button" onClick={toggleFooterPlay} disabled={!selectedReferenceMusic?.music_url}>
-              <img src={footerIcon} alt="" aria-hidden />
+            <button className="mix-footer-current" type="button" onClick={toggleFooterPlay} disabled={!footerAudioReady}>
+              <img src={selectedReferenceIcon} alt="" aria-hidden />
               <div>
                 {footerCurrentTitle ? renderSongTitle(footerCurrentTitle) : <strong>等待选择歌曲</strong>}
                 <span>{footerCurrentDescription}</span>
@@ -1133,22 +1174,24 @@ export default function MixInterfacePage() {
             </button>
             <div className="mix-footer-player">
               <button type="button" onClick={() => selectAdjacentReference(-1)} disabled={!canSelectAdjacentReference} aria-label="上一首"><Icon name="prev" /></button>
-              <button className="mix-footer-play" type="button" onClick={toggleFooterPlay} disabled={!selectedReferenceMusic?.music_url} aria-label={footerPlaying ? '暂停' : '播放'}>
-                <Icon name={footerPlaying ? 'pause' : 'play'} className={footerPlaying ? undefined : 'mix-footer-play-icon'} />
-              </button>
+              <span className={`mix-footer-play-wrapper${footerAudioUnavailableReason ? ' is-disabled' : ''}`} onMouseEnter={showFooterPlayTooltip} onMouseLeave={() => setFooterPlayTooltip(null)}>
+                <button className="mix-footer-play" type="button" onClick={toggleFooterPlay} disabled={!footerAudioReady} aria-label={footerPlaying ? '暂停' : '播放'}>
+                  <Icon name={footerPlaying ? 'pause' : 'play'} className={footerPlaying ? undefined : 'mix-footer-play-icon'} />
+                </button>
+              </span>
               <button type="button" onClick={() => selectAdjacentReference(1)} disabled={!canSelectAdjacentReference} aria-label="下一首"><Icon name="next" /></button>
-              <span>{formatTime(footerCurrentTime)}</span>
+              <span>{formatTime(footerDisplayCurrentTime)}</span>
               <input
                 className="mix-footer-range"
                 type="range"
                 min="0"
-                max={footerDuration || 0}
-                value={Math.min(footerCurrentTime, footerDuration || 0)}
+                max={footerDisplayDuration}
+                value={Math.min(footerDisplayCurrentTime, footerDisplayDuration)}
                 onChange={handleFooterSeek}
-                disabled={!footerDuration}
+                disabled={!footerAudioReady || !footerDisplayDuration}
                 style={{ '--mix-progress': `${footerProgressPercent}%` } as CSSProperties}
               />
-              <span>{formatTime(footerDuration)}</span>
+              <span>{formatTime(footerDisplayDuration)}</span>
             </div>
           </footer>
 
@@ -1279,14 +1322,23 @@ export default function MixInterfacePage() {
           />
           <audio
             ref={footerAudioRef}
-            src={selectedReferenceMusic?.music_url || undefined}
-            onTimeUpdate={(event) => setFooterCurrentTime(event.currentTarget.currentTime)}
-            onLoadedMetadata={(event) => setFooterDuration(event.currentTarget.duration)}
+            src={footerAudioUrl || undefined}
+            onTimeUpdate={(event) => {
+              if (footerAudioReady) setFooterCurrentTime(event.currentTarget.currentTime)
+            }}
+            onLoadedMetadata={(event) => {
+              if (footerAudioReady) setFooterDuration(Number.isFinite(event.currentTarget.duration) ? event.currentTarget.duration : 0)
+            }}
             onEnded={() => setFooterPlaying(false)}
           />
           {songTitleTooltip && (
             <div className="mix-song-title-tooltip" style={{ left: songTitleTooltip.left, top: songTitleTooltip.top }}>
               {songTitleTooltip.text}
+            </div>
+          )}
+          {footerPlayTooltip && footerAudioUnavailableReason && (
+            <div className="mix-song-title-tooltip" style={{ left: footerPlayTooltip.left, top: footerPlayTooltip.top }}>
+              {footerPlayTooltip.text}
             </div>
           )}
         </section>

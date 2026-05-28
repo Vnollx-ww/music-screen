@@ -869,6 +869,19 @@
   color: #111116;
 }
 
+.mix-footer-player .mix-footer-play-wrapper {
+  display: grid;
+  place-items: center;
+}
+
+.mix-footer-player .mix-footer-play-wrapper.is-disabled {
+  cursor: not-allowed;
+}
+
+.mix-footer-player .mix-footer-play-wrapper.is-disabled .mix-footer-play {
+  pointer-events: none;
+}
+
 .mix-footer-player span {
   width: 42px;
   flex: 0 0 42px;

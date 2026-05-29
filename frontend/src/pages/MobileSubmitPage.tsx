@@ -27,8 +27,8 @@ type SubmitEraOption = {
 
 const submitEraOptions: SubmitEraOption[] = [
   { value: 'vinyl', name: '黑胶', years: '1970', iconUrl: vinylIconUrl },
-  { value: 'cd', name: 'CD', years: '1990', iconUrl: cdIconUrl },
   { value: 'tape', name: '磁带', years: '1980', iconUrl: tapeIconUrl },
+  { value: 'cd', name: 'CD', years: '1990', iconUrl: cdIconUrl },
   { value: 'digital', name: '数字', years: '2000', iconUrl: digitalIconUrl },
 ]
 

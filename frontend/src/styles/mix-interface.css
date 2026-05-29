@@ -696,6 +696,17 @@
   pointer-events: none;
 }
 
+.mix-ranking-ai-icon-shell {
+  overflow: visible;
+}
+
+.mix-ranking-play .mix-ranking-ai-icon {
+  left: -24.9px;
+  top: -19.7px;
+  width: 107.2px;
+  height: 88.3px;
+}
+
 .mix-ranking-meta {
   display: flex;
   min-width: 0;

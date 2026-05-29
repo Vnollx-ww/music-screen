@@ -30,7 +30,7 @@ import styleCard4 from '../svg/mix-interface/form/cards/Card4.svg'
 import secondaryCapsule from '../svg/mix-interface/form/capsules/SecondaryBlackCapsule.svg'
 import primaryCapsule from '../svg/mix-interface/form/capsules/PrimaryGradientCapsule.svg'
 import rankingPanel from '../svg/mix-interface/ranking/panels/RankingPanel.svg'
-import ipadIcon from '../svg/ipad.svg'
+import aiRankingIcon from '../svg/ranking-panel-right/icons/AiMusicBallOpaque.svg'
 import footerPanel from '../svg/mix-interface/footer/panels/FooterBar.svg'
 import pushCapsule from '../svg/mix-interface/footer/capsules/ActionBlackCapsule.svg'
 import footerIcon from '../svg/mix-interface/footer/icons/BlendBubbles.svg'
@@ -1162,7 +1162,7 @@ export default function MixInterfacePage() {
                     onClick={() => handleWorkSelect(work)}
                     disabled={waiting}
                   >
-                    <span className="mix-ranking-play"><img src={ipadIcon} alt="" aria-hidden /></span>
+                    <span className="mix-ranking-play mix-ranking-ai-icon-shell"><img className="mix-ranking-ai-icon" src={aiRankingIcon} alt="" aria-hidden /></span>
                     <span className="mix-ranking-meta">
                       {renderRankingSongTitle(work.title)}
                       <small>{work.isPending ? 'AI正在生成音乐...' : work.isMusicLoading ? '音频信息加载中...' : work.missingMusic ? '缺少关联音乐，无法播放' : work.prompt}</small>

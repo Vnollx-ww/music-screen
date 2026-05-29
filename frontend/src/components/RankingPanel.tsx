@@ -52,8 +52,8 @@ const CLASSIC_RANKING_ICON_SIZE = 41
 
 const classicEraIcons: Record<ClassicEra, string> = {
   vinyl: vinylIcon,
-  cd: cdIcon,
   tape: tapeIcon,
+  cd: cdIcon,
   digital: digitalIcon,
 }
 
@@ -200,8 +200,8 @@ function EmptyState({ variant, layout }: { variant: 'classic' | 'ai'; layout: Pa
       {isClassic ? (
         <div className="mb-4 flex items-center justify-center gap-2">
           <ClassicRankingIcon era="vinyl" size={38} />
-          <ClassicRankingIcon era="cd" size={38} />
           <ClassicRankingIcon era="tape" size={38} />
+          <ClassicRankingIcon era="cd" size={38} />
           <ClassicRankingIcon era="digital" size={38} />
         </div>
       ) : (

@@ -7,6 +7,7 @@ import EraDiamondFocus from '../components/EraDiamondFocus'
 import EraSongBalls from '../components/EraSongBalls'
 import OverlayAboveCircles from '../components/OverlayAboveCircles'
 import AiTopRecord from '../components/AiTopRecord'
+import FullscreenToggleButton from '../components/FullscreenToggleButton'
 import { useSongs } from '../hooks/useSongs'
 import { useLeaderboards } from '../hooks/useLeaderboards'
 import { useResponsiveScale } from '../hooks/useResponsiveScale'
@@ -99,6 +100,8 @@ export default function DashboardPage() {
         </div>
 
         <QRCode />
+
+        <FullscreenToggleButton className="dashboard-fullscreen-toggle" />
       </div>
     </div>
   )

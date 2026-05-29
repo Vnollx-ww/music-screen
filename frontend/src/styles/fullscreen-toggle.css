@@ -1,0 +1,104 @@
+.fullscreen-toggle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0.4;
+}
+
+.fullscreen-toggle-btn:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.65);
+  transform: translateY(-1px);
+}
+
+.fullscreen-toggle-btn--active {
+  opacity: 0.8;
+}
+
+.fullscreen-toggle-icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+.fullscreen-toggle-corner {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+/* 非全屏：四个角都朝外，形成“放大”图标 */
+.fullscreen-toggle-btn:not(.fullscreen-toggle-btn--active) .fullscreen-toggle-corner--tl {
+  top: 0;
+  left: 0;
+  border-right: none;
+  border-bottom: none;
+}
+
+.fullscreen-toggle-btn:not(.fullscreen-toggle-btn--active) .fullscreen-toggle-corner--tr {
+  top: 0;
+  right: 0;
+  border-left: none;
+  border-bottom: none;
+}
+
+.fullscreen-toggle-btn:not(.fullscreen-toggle-btn--active) .fullscreen-toggle-corner--bl {
+  bottom: 0;
+  left: 0;
+  border-right: none;
+  border-top: none;
+}
+
+.fullscreen-toggle-btn:not(.fullscreen-toggle-btn--active) .fullscreen-toggle-corner--br {
+  bottom: 0;
+  right: 0;
+  border-left: none;
+  border-top: none;
+}
+
+/* 全屏中：角往里收缩一点，像“退出全屏”图标 */
+.fullscreen-toggle-btn--active .fullscreen-toggle-corner--tl {
+  top: 3px;
+  left: 3px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.fullscreen-toggle-btn--active .fullscreen-toggle-corner--tr {
+  top: 3px;
+  right: 3px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.fullscreen-toggle-btn--active .fullscreen-toggle-corner--bl {
+  bottom: 3px;
+  left: 3px;
+  border-right: none;
+  border-top: none;
+}
+
+.fullscreen-toggle-btn--active .fullscreen-toggle-corner--br {
+  bottom: 3px;
+  right: 3px;
+  border-left: none;
+  border-top: none;
+}
+
+/* 大屏 Dashboard 画布内的定位：固定在 1920x1080 画布的右下角 */
+.dashboard-fullscreen-toggle {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+}
